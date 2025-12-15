@@ -1,0 +1,253 @@
+/* Audiext Design System - Refined */
+@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500;600;700;800&family=Genos:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --surface: #141416;
+  --text: #FAFAFA;
+  --text-secondary: rgba(250, 250, 250, 0.5);
+  
+  --accent-primary: #FF6B35;
+  --accent-secondary: #FF8C42;
+  --accent-tertiary: #E63946;
+  
+  --logo-green: #4ADE80;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  background: var(--background);
+  font-family: 'Funnel Display', 'Inter', -apple-system, sans-serif;
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Genos font for rotating words */
+.genos-font {
+  font-family: 'Genos', sans-serif;
+}
+
+/* Stroke-only shine animation for pill outlines */
+.shine-stroke {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 50px;
+  background: transparent;
+  overflow: hidden;
+}
+
+.shine-stroke::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  padding: 1.5px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.4) 25%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.4) 75%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  background-size: 200% 100%;
+  animation: stroke-shine 3s ease-in-out infinite;
+}
+
+@keyframes stroke-shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Word carousel container */
+.word-carousel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.2em;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Subtle continuous shine animation for pill OUTLINES only */
+.shine-pill {
+  position: relative;
+}
+
+.shine-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 100px;
+  padding: 1.5px; /* Same as border width */
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.35) 25%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.35) 75%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  /* Mask to show only the outline/stroke, not the fill */
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  background-size: 200% 100%;
+  animation: pill-shine 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pill-shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Shiny fill effect for active filter pills - animated gradient */
+.shine-fill {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.85) 0%,
+    rgba(255, 255, 255, 1) 20%,
+    rgba(255, 255, 255, 0.9) 40%,
+    rgba(255, 255, 255, 1) 60%,
+    rgba(255, 255, 255, 0.85) 80%,
+    rgba(255, 255, 255, 1) 100%
+  ) !important;
+  background-size: 200% 100%;
+  animation: shine-fill-anim 3s ease-in-out infinite;
+  color: #000 !important;
+  border: none !important;
+}
+
+@keyframes shine-fill-anim {
+  0% {
+    background-position: 200% 0;
+  }
+  50% {
+    background-position: 0% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Shimmer animation for gradient text fill */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
+}
+
+/* Static chrome outline for nav bar (no animation) */
+.chrome-pill {
+  position: relative;
+}
+
+.chrome-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  padding: 1.5px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.4) 25%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.4) 75%,
+    rgba(255, 255, 255, 0.15) 100%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Noise texture overlay for nav bar */
+.nav-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Library List Custom Scrollbar - Thin, centered, shows only on scroll */
+.library-list-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.library-list-scroll:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) scrollbar */
+.library-list-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.library-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 20px 0;
+}
+
+.library-list-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.library-list-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.library-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
