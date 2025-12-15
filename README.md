@@ -1,73 +1,200 @@
-# React + TypeScript + Vite
+<p align="center">
+  <img src="docs/assets/logo.png" alt="AudiText Logo" width="120" height="120">
+</p>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<h1 align="center">AudiText</h1>
 
-Currently, two official plugins are available:
+<p align="center">
+  <strong>Transform your reading into listening</strong>
+  <br>
+  A beautiful, modern PWA that converts articles, tweets, and blog posts into high-quality audio
+</p>
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+<p align="center">
+  <a href="#features">Features</a> •
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#contributing">Contributing</a>
+</p>
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ✨ Features
 
-## Expanding the ESLint configuration
+### 🎧 Core Functionality
+- **Text-to-Speech Conversion** - Transform any article, tweet, or blog post into natural-sounding audio
+- **Multi-Platform Support** - Works with X (Twitter), Medium, TechCrunch, Dev.to, and more
+- **Offline Mode** - Download content for listening without internet
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 🎨 Premium UI/UX
+- **Reactive Noir Aesthetic** - Dark theme with dynamic color palettes (Ember, Sunset, Aurora, Violet, Gold)
+- **DarkVeil Background** - WebGL-powered animated gradients with noise overlay
+- **Animated Icons** - Smooth micro-interactions on all navigation elements
+- **Shiny Filter Pills** - Animated gradient effects for active states
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 📚 Library Management
+- **Smart Filtering** - Filter by All, Favorites, Saved, Tweets, or Articles
+- **Progress Tracking** - Visual progress bars showing listening status
+- **Source Recognition** - Platform logos for easy content identification
+- **Favorites System** - Star your preferred content for quick access
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### ⚙️ Customization
+- **Variable Playback Speed** - Free scrub from 0.5x to 2.5x
+- **Voice Selection** - Choose your preferred TTS voice
+- **Theme Options** - Multiple color palettes to match your mood
+- **Auto-Archive** - Automatic cleanup of old content
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## 🛠️ Tech Stack
+
+| Category | Technology |
+|----------|------------|
+| **Framework** | React 19 + TypeScript |
+| **Build Tool** | Vite 7 |
+| **Styling** | CSS + Tailwind CSS 4 |
+| **Animation** | Framer Motion |
+| **Routing** | React Router DOM 7 |
+| **Icons** | Lucide React + Custom Animated Icons |
+| **Graphics** | OGL (WebGL) for DarkVeil shader |
+| **PWA** | vite-plugin-pwa |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/nabrahma/AudiText.git
+
+# Navigate to project directory
+cd AudiText
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Available Scripts
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## 📁 Project Structure
+
 ```
+AudiText/
+├── src/
+│   ├── components/
+│   │   ├── icons/           # Animated icon components
+│   │   │   ├── BookOpenTextIcon.tsx
+│   │   │   ├── HouseIcon.tsx
+│   │   │   └── SettingsIcon.tsx
+│   │   ├── DarkVeil.tsx     # WebGL background shader
+│   │   ├── Noise.tsx        # Canvas noise overlay
+│   │   ├── ScrubBar.tsx     # Custom speed slider
+│   │   └── ShimmeringText.tsx
+│   ├── checkpoints/         # Version checkpoints
+│   ├── App.tsx              # Main application
+│   ├── index.css            # Global styles + animations
+│   └── main.tsx             # Entry point
+├── public/
+├── docs/                    # Documentation assets
+└── package.json
+```
+
+---
+
+## 🏗️ Architecture
+
+### Pages
+
+| Page | Description |
+|------|-------------|
+| **Home** | Landing page with animated orb visualizer and quick-start options |
+| **Library** | Content management with filtering, search, and progress tracking |
+| **Settings** | User preferences including playback speed, voice, and theme |
+| **Player** | Audio playback interface (in development) |
+
+### Design System
+
+- **Color Palettes**: 5 dynamic palettes with hue-shifted backgrounds
+- **Typography**: Funnel Display (headings), Genos (UI elements)
+- **Animations**: CSS keyframes + Framer Motion for smooth transitions
+- **Effects**: Shine-fill pills, chrome borders, noise overlays
+
+---
+
+## 📸 Screenshots
+
+<details>
+<summary>Click to expand screenshots</summary>
+
+### Home Page
+The home page features a dynamic DarkVeil WebGL background with an animated orb visualizer.
+
+### Library Page
+Library with filter pills, progress bars, and platform source logos.
+
+### Settings Page
+Settings with free scrub speed control and toggle switches.
+
+</details>
+
+---
+
+## 🗺️ Roadmap
+
+- [x] **v1.0** - Home page with animated background
+- [x] **v2.0** - Complete UI design (Library, Settings, Player)
+- [ ] **v2.1** - Backend integration for TTS
+- [ ] **v2.2** - Content extraction from URLs
+- [ ] **v3.0** - Full PWA with offline support
+- [ ] **v3.1** - User authentication & cloud sync
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting a PR.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is private and not open source.
+
+---
+
+## 👤 Author
+
+**Nabeel Ibrahim**
+
+- GitHub: [@nabrahma](https://github.com/nabrahma)
+
+---
+
+<p align="center">
+  Made with ❤️ and ☕
+</p>
