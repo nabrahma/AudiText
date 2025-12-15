@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="docs/assets/logo.png" alt="AudiText Logo" width="120" height="120">
-</p>
-
 <h1 align="center">AudiText</h1>
 
 <p align="center">
@@ -189,7 +185,7 @@ This project is private and not open source.
 
 ## 👤 Author
 
-**Nabeel Ibrahim**
+**Nabaskar Brahma**
 
 - GitHub: [@nabrahma](https://github.com/nabrahma)
 
