@@ -1,12 +1,15 @@
 import DarkVeil from '@/components/DarkVeil';
-import Noise from '@/components/Noise';
-import { ScrubBar } from '@/components/ScrubBar';
-import ShimmeringText from '@/components/ShimmeringText';
+import { Dither } from '@/components/Dither';
 import { BookOpenTextIcon } from '@/components/icons/BookOpenTextIcon';
 import { HouseIcon } from '@/components/icons/HouseIcon';
 import { SettingsIcon } from '@/components/icons/SettingsIcon';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, ChevronRight, Eye, Mic, Pause, Play, Share2, SkipBack, SkipForward, Sparkles } from 'lucide-react';
+import Noise from '@/components/Noise';
+import { Orb } from '@/components/Orb';
+import { ScrubBar } from '@/components/ScrubBar';
+import ShimmeringText from '@/components/ShimmeringText';
+import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
+import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Eye, Mic, Pause, Play, Share2, SkipBack, SkipForward, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './index.css';
@@ -230,11 +233,7 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
   };
   
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
+    <div
       style={{ minHeight: '100vh', position: 'relative', background: '#000' }}
     >
       {/* DarkVeil Background - Fullscreen */}
@@ -488,7 +487,7 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
           </button>
         </motion.div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -496,88 +495,507 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
 function PlayerPage({ palette }: { palette: PaletteKey }) {
   const navigate = useNavigate();
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [amplitude, setAmplitude] = useState(0);
-  const [visualMode, setVisualMode] = useState<'BLOB' | 'AURORA'>('BLOB');
+  const [currentTime, setCurrentTime] = useState(45); // Start at 45 seconds for demo
+  const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1x, 1.25x, 1.5x, 2x
   const totalDuration = 180;
   const colors = PALETTES[palette];
+  
+  // Speed cycle: 1 -> 1.25 -> 1.5 -> 2 -> 1
+  const cycleSpeed = () => {
+    setPlaybackSpeed(prev => {
+      if (prev === 1) return 1.25;
+      if (prev === 1.25) return 1.5;
+      if (prev === 1.5) return 2;
+      return 1;
+    });
+  };
+  
+  // Audio amplitude simulation for the orb
+  const [amplitude, setAmplitude] = useState(0);
   
   useEffect(() => {
     if (isPlaying) {
       const interval = setInterval(() => {
-        setCurrentTime((prev) => prev >= totalDuration ? (setIsPlaying(false), 0) : prev + 0.1);
-        setAmplitude(Math.random() * 0.5 + 0.3);
+        setCurrentTime((prev) => {
+          if (prev >= totalDuration) {
+            setIsPlaying(false);
+            return 0;
+          }
+          return prev + 0.1;
+        });
+        // Simulate audio amplitude
+        setAmplitude(Math.random() * 0.6 + 0.2);
       }, 100);
-      return () => { clearInterval(interval); setAmplitude(0); };
+      return () => { 
+        clearInterval(interval); 
+        setAmplitude(0); 
+      };
     }
   }, [isPlaying, totalDuration]);
   
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
-  const progress = (currentTime / totalDuration) * 100;
+  
+  // Handle scrub bar seek
+  const handleSeek = (time: number) => {
+    setCurrentTime(time);
+  };
   
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ minHeight: '100vh', position: 'relative', background: '#050505' }}>
-      <SubtleBackground palette={palette} />
+    <div 
+      style={{ 
+        height: '100vh', 
+        position: 'relative', 
+        background: '#000',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Dither Background - Grey like ElevenLabs preview - reduced opacity */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 0,
+        opacity: 0.5,
+      }}>
+        <Dither 
+          waveColor="#606060"
+          backgroundColor="#0a0a0a"
+          waveAmplitude={30}
+          waveFrequency={0.012}
+          waveSpeed={0.012}
+        />
+      </div>
       
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: '390px', margin: '0 auto', padding: '0 24px', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '48px', marginBottom: '24px' }}>
-          <button onClick={() => navigate('/')} style={{ padding: '10px', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', cursor: 'pointer', color: 'white' }}><ChevronDown size={20} /></button>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Now Playing</p>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, fontFamily: 'Funnel Display, sans-serif' }}>The Future of AI</h2>
-          </div>
-          <button style={{ padding: '10px', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: '50%', cursor: 'pointer', color: 'white' }}><Share2 size={18} /></button>
+      {/* Gradient fade to black at top */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '30vh',
+        background: 'linear-gradient(to bottom, #000 0%, transparent 100%)',
+        zIndex: 1,
+        pointerEvents: 'none',
+      }} />
+      
+      {/* Content Container - Scrollable */}
+      <div style={{ 
+        position: 'relative', 
+        zIndex: 2, 
+        width: '100%',
+        maxWidth: '390px', 
+        margin: '0 auto', 
+        padding: '0 24px', 
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: '20px',
+      }}>
+        
+        {/* Header - pushed up */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          paddingTop: '32px', 
+          marginBottom: '16px',
+        }}>
+          <button 
+            onClick={() => navigate('/')} 
+            style={{ 
+              padding: '12px', 
+              background: 'rgba(255,255,255,0.05)', 
+              border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: '50%', 
+              cursor: 'pointer', 
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          
+          <p style={{ 
+            fontSize: '12px', 
+            color: 'rgba(255,255,255,0.5)', 
+            textTransform: 'uppercase', 
+            letterSpacing: '3px', 
+            fontWeight: 500,
+            fontFamily: 'Genos, sans-serif',
+          }}>
+            Now Playing
+          </p>
+          
+          {/* Empty spacer for alignment */}
+          <div style={{ width: '44px' }} />
         </div>
         
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '280px' }}>
-          {visualMode === 'BLOB' ? <GeminiOrb amplitude={isPlaying ? amplitude : 0} size={220} palette={palette} /> : <Sparkles size={100} strokeWidth={1} style={{ color: colors.primary, opacity: 0.4 }} />}
+        {/* Title Section */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <h1 style={{ 
+            fontSize: '28px', 
+            fontWeight: 600, 
+            fontFamily: 'Genos, sans-serif',
+            marginBottom: '6px',
+            lineHeight: 1.2,
+          }}>
+            The Future of Ai
+          </h1>
+          <p style={{ 
+            fontSize: '14px', 
+            color: 'rgba(255,255,255,0.5)',
+            fontFamily: 'Genos, sans-serif',
+          }}>
+            TechCrunch • 3 min read
+          </p>
         </div>
         
-        <div style={{ paddingBottom: '48px' }}>
-          <div style={{ marginBottom: '24px' }}>
-            <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: colors.primary, transition: 'width 0.1s linear' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
-              <span>{formatTime(currentTime)}</span><span>{formatTime(totalDuration)}</span>
-            </div>
+        {/* ElevenLabs Orb Visualizer - smaller to fit scrub bar */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          marginBottom: '16px',
+        }}>
+          <div style={{ 
+            width: '200px', 
+            height: '200px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            background: '#000',
+            boxShadow: '0 0 40px rgba(0,0,0,0.5)',
+          }}>
+            <Orb 
+              colors={["#CADCFC", "#A0B9D1"]}
+              agentState={isPlaying ? 'talking' : null}
+              volumeMode="manual"
+              manualOutput={isPlaying ? amplitude : 0.1}
+              manualInput={isPlaying ? amplitude * 0.5 : 0}
+            />
+          </div>
+        </div>
+        
+        {/* Scrub Bar below orb */}
+        <div style={{ 
+          marginBottom: '20px',
+          padding: '0 16px',
+        }}>
+          <ScrubBarContainer
+            duration={totalDuration}
+            value={currentTime}
+            onScrub={handleSeek}
+            onScrubStart={() => setIsPlaying(false)}
+            onScrubEnd={() => {}}
+          >
+            <ScrubBarTimeLabel time={currentTime} style={{ width: '36px', textAlign: 'left', fontSize: '12px', fontFamily: 'Genos, sans-serif' }} />
+            <ScrubBarTrack style={{ margin: '0 10px', height: '4px' }}>
+              <ScrubBarProgress progressColor="#ffffff" />
+              <ScrubBarThumb 
+                style={{ 
+                  width: '12px', 
+                  height: '12px',
+                  background: '#ffffff',
+                }} 
+              />
+            </ScrubBarTrack>
+            <ScrubBarTimeLabel time={totalDuration} style={{ width: '36px', textAlign: 'right', fontSize: '12px', fontFamily: 'Genos, sans-serif' }} />
+          </ScrubBarContainer>
+        </div>
+        
+        {/* Controls Row: Share | SkipBack | Play | SkipForward | Speed */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: '12px',
+          marginBottom: '20px',
+        }}>
+          {/* Share Button - dark circle */}
+          <button 
+            style={{ 
+              width: '48px',
+              height: '48px',
+              background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)',
+              border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: '50%', 
+              cursor: 'pointer', 
+              color: 'rgba(255,255,255,0.7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.3)',
+            }}
+          >
+            <Share2 size={18} />
+          </button>
+          
+          {/* Skip Back - white oval */}
+          <button 
+            onClick={() => setCurrentTime(Math.max(0, currentTime - 15))} 
+            style={{ 
+              width: '52px',
+              height: '44px',
+              background: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 100%)',
+              border: '1px solid rgba(255,255,255,0.8)', 
+              borderRadius: '50%',
+              cursor: 'pointer', 
+              color: '#000',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.3)',
+            }}
+          >
+            <SkipBack size={18} fill="#050505" />
+          </button>
+          
+          {/* Play/Pause - larger white oval */}
+          <button 
+            onClick={() => setIsPlaying(!isPlaying)} 
+            style={{ 
+              width: '64px', 
+              height: '56px', 
+              borderRadius: '50%', 
+              background: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 100%)', 
+              border: '1px solid rgba(255,255,255,0.8)', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.9), 0 3px 10px rgba(0,0,0,0.3)',
+            }}
+          >
+            {isPlaying ? (
+              <Pause size={26} fill="#050505" color="#050505" />
+            ) : (
+              <Play size={26} fill="#050505" color="#050505" style={{ marginLeft: '3px' }} />
+            )}
+          </button>
+          
+          {/* Skip Forward - white oval */}
+          <button 
+            onClick={() => setCurrentTime(Math.min(totalDuration, currentTime + 15))} 
+            style={{ 
+              width: '52px',
+              height: '44px',
+              background: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 100%)',
+              border: '1px solid rgba(255,255,255,0.8)', 
+              borderRadius: '50%',
+              cursor: 'pointer', 
+              color: '#000',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.3)',
+            }}
+          >
+            <SkipForward size={18} fill="#050505" />
+          </button>
+          
+          {/* Speed Toggle - dark circle with fixed size */}
+          <button 
+            onClick={cycleSpeed}
+            style={{ 
+              width: '48px',
+              height: '48px',
+              background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)',
+              border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: '50%',
+              cursor: 'pointer', 
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 600,
+              fontFamily: 'Genos, sans-serif',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.3)',
+            }}
+          >
+            {playbackSpeed}x
+          </button>
+        </div>
+        
+        {/* Contents Section - Spotify-style with sticky header and fade */}
+        <div style={{ 
+          background: '#1a1a1a',
+          borderRadius: '24px',
+          border: '1px solid rgba(255,255,255,0.1)',
+          marginBottom: '16px',
+          minHeight: '320px',
+          maxHeight: '350px',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          position: 'relative',
+        }} className="hide-scrollbar">
+          {/* Sticky Contents header with fade effect */}
+          <div style={{ 
+            position: 'sticky',
+            top: 0,
+            background: 'linear-gradient(to bottom, #1a1a1a 0%, #1a1a1a 60%, transparent 100%)',
+            padding: '24px 24px 32px 24px',
+            zIndex: 1,
+          }}>
+            <p style={{ 
+              fontSize: '14px', 
+              color: 'rgba(255,255,255,0.4)', 
+              fontFamily: 'Genos, sans-serif',
+              fontWeight: 500,
+              margin: 0,
+            }}>
+              Contents
+            </p>
           </div>
           
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
-            {['BLOB', 'AURORA'].map((mode) => (
-              <button key={mode} onClick={() => setVisualMode(mode as any)} style={{
-                padding: '8px 16px', background: visualMode === mode ? 'rgba(255,255,255,0.1)' : 'transparent',
-                border: `1px solid ${visualMode === mode ? colors.primary : 'rgba(255,255,255,0.1)'}`,
-                borderRadius: '20px', color: visualMode === mode ? colors.primary : 'rgba(255,255,255,0.5)',
-                fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                fontFamily: 'Funnel Display, sans-serif',
-              }}>
-                {mode === 'BLOB' ? <Eye size={14} /> : <Sparkles size={14} />}{mode === 'BLOB' ? 'Orb' : 'Aurora'}
-              </button>
-            ))}
+          {/* Lyrics/Text Content - with padding for spacing */}
+          <div style={{ 
+            fontSize: '16px', 
+            lineHeight: 2,
+            fontFamily: 'Genos, sans-serif',
+            padding: '0 24px 24px 24px',
+            marginTop: '-16px',
+          }}>
+            <p style={{ 
+              color: currentTime < 60 ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.35)',
+              transition: 'color 0.3s ease, font-weight 0.3s ease',
+              marginBottom: '12px',
+              fontWeight: currentTime < 60 ? 700 : 400,
+            }}>
+              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
+            </p>
+            <p style={{ 
+              color: currentTime >= 60 && currentTime < 120 ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.35)',
+              transition: 'color 0.3s ease, font-weight 0.3s ease',
+              marginBottom: '12px',
+              fontWeight: currentTime >= 60 && currentTime < 120 ? 700 : 400,
+            }}>
+              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
+            </p>
+            <p style={{ 
+              color: 'rgba(255,255,255,0.35)',
+              marginBottom: '12px',
+            }}>
+              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
+            </p>
+            <p style={{ 
+              color: 'rgba(255,255,255,0.35)',
+              marginBottom: '12px',
+            }}>
+              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
+            </p>
+            <p style={{ 
+              color: 'rgba(255,255,255,0.35)',
+              marginBottom: '12px',
+            }}>
+              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
+            </p>
+            <p style={{ 
+              color: 'rgba(255,255,255,0.35)',
+              marginBottom: '12px',
+            }}>
+              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
+            </p>
+            <p style={{ 
+              color: 'rgba(255,255,255,0.35)',
+            }}>
+              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
+            </p>
           </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '36px' }}>
-            <button onClick={() => setCurrentTime(Math.max(0, currentTime - 15))} style={{ padding: '10px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}><SkipBack size={26} /></button>
-            <button onClick={() => setIsPlaying(!isPlaying)} style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {isPlaying ? <Pause size={28} fill="#050505" color="#050505" /> : <Play size={28} fill="#050505" color="#050505" style={{ marginLeft: '3px' }} />}
-            </button>
-            <button onClick={() => setCurrentTime(Math.min(totalDuration, currentTime + 15))} style={{ padding: '10px', background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.5)' }}><SkipForward size={26} /></button>
-          </div>
+        </div>
+        
+        {/* Made with love footer - lower position */}
+        <div style={{ 
+          textAlign: 'center',
+          paddingTop: '16px',
+          paddingBottom: '48px',
+        }}>
+          <p style={{ 
+            fontSize: '14px', 
+            color: 'rgba(255,255,255,0.5)',
+            fontFamily: 'Genos, sans-serif',
+          }}>
+            Made with ❤️ by Nabaskar
+          </p>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-// ==================== LIBRARY PAGE ====================
-const LIBRARY_ITEMS = [
-  { id: '1', title: 'The Future of AI', source: 'TechCrunch', platform: 'techcrunch', duration: '5m', progress: 80, isFavorite: true, isOffline: true, type: 'Article' as const },
-  { id: '2', title: 'React 19 Thread', source: '@dan_abramov', platform: 'x', duration: '2m', progress: 0, isFavorite: false, isOffline: false, type: 'Tweet' as const },
-  { id: '3', title: 'Understanding ML Basics', source: 'Medium', platform: 'medium', duration: '8m', progress: 50, isFavorite: true, isOffline: false, type: 'Article' as const },
-  { id: '4', title: 'Web Dev Tips', source: '@wesbos', platform: 'x', duration: '3m', progress: 100, isFavorite: false, isOffline: true, type: 'Tweet' as const },
-  { id: '5', title: 'Design Systems Guide', source: 'Smashing Mag', platform: 'web', duration: '12m', progress: 25, isFavorite: false, isOffline: false, type: 'Article' as const },
-  { id: '6', title: 'TypeScript Best Practices', source: 'Dev.to', platform: 'devto', duration: '6m', progress: 0, isFavorite: true, isOffline: true, type: 'Article' as const },
+// Sample library items data
+interface LibraryItem {
+  id: string;
+  title: string;
+  source: string;
+  duration: string;
+  progress: number;
+  type: 'Tweet' | 'Article' | 'Thread';
+  isFavorite: boolean;
+  isOffline: boolean;
+  platform: 'twitter' | 'medium' | 'substack' | 'web';
+}
+
+const LIBRARY_ITEMS: LibraryItem[] = [
+  {
+    id: '1',
+    title: 'The Future of AI in Software Development',
+    source: 'TechCrunch',
+    duration: '8 min',
+    progress: 45,
+    type: 'Article',
+    isFavorite: true,
+    isOffline: false,
+    platform: 'web',
+  },
+  {
+    id: '2',
+    title: 'Thread: Why startups fail in 2024',
+    source: '@pmarca',
+    duration: '5 min',
+    progress: 100,
+    type: 'Thread',
+    isFavorite: false,
+    isOffline: true,
+    platform: 'twitter',
+  },
+  {
+    id: '3',
+    title: 'Building products users love',
+    source: 'Medium',
+    duration: '12 min',
+    progress: 0,
+    type: 'Article',
+    isFavorite: false,
+    isOffline: false,
+    platform: 'medium',
+  },
+  {
+    id: '4',
+    title: 'Hot take: React is overrated',
+    source: '@dan_abramov',
+    duration: '2 min',
+    progress: 80,
+    type: 'Tweet',
+    isFavorite: true,
+    isOffline: true,
+    platform: 'twitter',
+  },
+  {
+    id: '5',
+    title: 'The Anatomy of a Great Product Launch',
+    source: 'Substack',
+    duration: '15 min',
+    progress: 20,
+    type: 'Article',
+    isFavorite: false,
+    isOffline: false,
+    platform: 'substack',
+  },
 ];
 
 type FilterType = 'All' | 'Favorites' | 'Saved' | 'Tweets' | 'Articles';
@@ -651,10 +1069,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
   };
   
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
+    <div 
       style={{ 
         height: '100vh', 
         position: 'relative', 
@@ -962,7 +1377,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -1009,10 +1424,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
   );
   
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }} 
+    <div 
       style={{ 
         height: '100vh', 
         position: 'relative', 
@@ -1225,7 +1637,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -1249,22 +1661,15 @@ function AppLayout() {
   };
   
   return (
-    <motion.div
-      animate={{ 
-        filter: isTransitioning ? 'brightness(0.8)' : 'brightness(1)',
-      }}
-      transition={{ duration: 0.3 }}
-    >
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<HomePage palette={palette} onVisit={handleHomeVisit} />} />
-          <Route path="/player" element={<PlayerPage palette={palette} />} />
-          <Route path="/library" element={<LibraryPage palette={palette} />} />
-          <Route path="/settings" element={<SettingsPage palette={palette} />} />
-        </Routes>
-      </AnimatePresence>
+    <div style={{ background: '#000', minHeight: '100vh' }}>
+      <Routes location={location}>
+        <Route path="/" element={<HomePage palette={palette} onVisit={handleHomeVisit} />} />
+        <Route path="/player" element={<PlayerPage palette={palette} />} />
+        <Route path="/library" element={<LibraryPage palette={palette} />} />
+        <Route path="/settings" element={<SettingsPage palette={palette} />} />
+      </Routes>
       <Navigation palette={palette} />
-    </motion.div>
+    </div>
   );
 }
 
