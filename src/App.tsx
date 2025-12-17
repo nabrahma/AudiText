@@ -9,8 +9,9 @@ import { Orb } from '@/components/Orb';
 import { ScrubBar } from '@/components/ScrubBar';
 import ShimmeringText from '@/components/ShimmeringText';
 import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
+import { AudioProvider, useAudio } from '@/lib/AudioContext';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Mic, Pause, Play, Share2, SkipBack, SkipForward, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Pause, Play, Share2, SkipBack, SkipForward, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './index.css';
@@ -217,8 +218,9 @@ function Navigation({ palette = 'ember' }: { palette?: PaletteKey }) {
 function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => void }) {
   const navigate = useNavigate();
   const [url, setUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const hasCalledOnVisit = useRef(false);
+  const audio = useAudio();
   
   useEffect(() => {
     if (!hasCalledOnVisit.current) {
@@ -227,11 +229,21 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
     }
   }, [onVisit]);
   
-  const handleListen = () => {
+  const handleListen = async () => {
     if (!url.trim()) return;
-    setIsLoading(true);
-    setTimeout(() => { setIsLoading(false); navigate('/player'); }, 1000);
+    setError(null);
+    
+    try {
+      // Start processing - this will extract content and generate audio
+      await audio.processUrl(url);
+      // Navigate to player once done
+      navigate('/player');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process URL');
+    }
   };
+  
+  const isLoading = audio.isExtracting;
   
   return (
     <div
@@ -471,21 +483,54 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
             style={{
               width: '100%',
               padding: '18px',
-              background: '#FAFAFA',
+              background: isLoading ? 'rgba(250,250,250,0.8)' : '#FAFAFA',
               color: '#0A0A0B',
               border: 'none',
               borderRadius: '50px',
               fontSize: '16px',
               fontWeight: 700,
-              cursor: url.trim() ? 'pointer' : 'not-allowed',
+              cursor: url.trim() && !isLoading ? 'pointer' : 'not-allowed',
               fontFamily: 'Funnel Display, sans-serif',
               opacity: url.trim() ? 1 : 0.7,
               transition: 'opacity 0.2s, transform 0.15s',
               boxShadow: url.trim() ? '0 0 20px rgba(255,255,255,0.15)' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
             }}
           >
-            Start Listening
+            {isLoading && (
+              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+            )}
+            {audio.isExtracting ? 'Extracting...' : 'Start Listening'}
           </button>
+          
+          {/* Error message */}
+          {error && (
+            <p style={{ 
+              color: '#f87171', 
+              fontSize: '14px', 
+              textAlign: 'center',
+              marginTop: '-8px',
+            }}>
+              {error}
+            </p>
+          )}
+          
+          {/* Loading notification */}
+          {isLoading && !error && (
+            <p style={{ 
+              color: 'rgba(255,255,255,0.5)', 
+              fontSize: '13px', 
+              textAlign: 'center',
+              marginTop: '-4px',
+            }}>
+              {audio.isExtracting 
+                ? 'Reading the article...' 
+                : 'Preparing audio...'}
+            </p>
+          )}
         </motion.div>
       </div>
     </div>
@@ -495,20 +540,20 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
 // ==================== PLAYER PAGE ====================
 function PlayerPage({ palette }: { palette: PaletteKey }) {
   const navigate = useNavigate();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(45); // Start at 45 seconds for demo
-  const [playbackSpeed, setPlaybackSpeed] = useState(1); // 1x, 1.25x, 1.5x, 2x
-  const totalDuration = 180;
-  const colors = PALETTES[palette];
+  const audio = useAudio();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Use context state for playback
+  const isPlaying = audio.isPlaying;
+  const currentTime = audio.currentTime;
+  const totalDuration = audio.duration || 180; // Default to 3 mins if not loaded
   
   // Speed cycle: 1 -> 1.25 -> 1.5 -> 2 -> 1
   const cycleSpeed = () => {
-    setPlaybackSpeed(prev => {
-      if (prev === 1) return 1.25;
-      if (prev === 1.25) return 1.5;
-      if (prev === 1.5) return 2;
-      return 1;
-    });
+    const speeds = [1, 1.25, 1.5, 2];
+    const currentIndex = speeds.indexOf(audio.playbackSpeed);
+    const nextIndex = (currentIndex + 1) % speeds.length;
+    audio.setSpeed(speeds[nextIndex]);
   };
   
   // Audio amplitude simulation for the orb
@@ -517,14 +562,7 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
   useEffect(() => {
     if (isPlaying) {
       const interval = setInterval(() => {
-        setCurrentTime((prev) => {
-          if (prev >= totalDuration) {
-            setIsPlaying(false);
-            return 0;
-          }
-          return prev + 0.1;
-        });
-        // Simulate audio amplitude
+        // Simulate audio amplitude based on playback
         setAmplitude(Math.random() * 0.6 + 0.2);
       }, 100);
       return () => { 
@@ -532,14 +570,94 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
         setAmplitude(0); 
       };
     }
-  }, [isPlaying, totalDuration]);
+  }, [isPlaying]);
   
+  // Parse metadata from chunks if header is generic
+  const [parsedMeta, setParsedMeta] = useState({ title: '', author: '' });
+
+  useEffect(() => {
+    if (audio.nativeChunks.length > 0) {
+      let foundTitle = '';
+      let foundAuthor = '';
+      
+      // Look in first 5 chunks for "Title:" or "Author:" patterns
+      audio.nativeChunks.slice(0, 5).forEach(chunk => {
+        const cleanChunk = chunk.trim();
+        // Clean regex to extract value, handling potential whitespace
+        if (/^Title\s*:/i.test(cleanChunk)) {
+          foundTitle = cleanChunk.replace(/^Title\s*:\s*/i, '').replace(/[.|]$/g, '').trim();
+        }
+        if (/^Author\s*:/i.test(cleanChunk)) {
+          foundAuthor = cleanChunk.replace(/^Author\s*:\s*/i, '').replace(/[.|]$/g, '').trim();
+        }
+      });
+      
+      setParsedMeta({ title: foundTitle, author: foundAuthor });
+    }
+  }, [audio.nativeChunks]);
+  
+  // Auto-scroll to active chunk - Spotify Style (Near Top)
+  useEffect(() => {
+    if (audio.currentChunkIndex >= 0 && scrollRef.current) {
+      const activeEl = document.getElementById(`chunk-${audio.currentChunkIndex}`);
+      const container = scrollRef.current;
+      
+      if (activeEl && container) {
+        // Use getBoundingClientRect for precise reliability regardless of nesting
+        const activeRect = activeEl.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Calculate offset rel to container
+        const currentRelTop = activeRect.top - containerRect.top;
+        const currentScroll = container.scrollTop;
+        
+        // Target: We want the element to be at approx 17% from the top of the container
+        // mimicking Spotify's "current line is easy to read at the top" view
+        const topOffset = container.clientHeight * 0.17; 
+        
+        const targetScroll = currentScroll + (currentRelTop - topOffset);
+        
+        container.scrollTo({
+          top: targetScroll,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [audio.currentChunkIndex]);
+
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
   
   // Handle scrub bar seek
   const handleSeek = (time: number) => {
-    setCurrentTime(time);
+    audio.seek(time);
   };
+  
+  // Handle play/pause toggle
+  const togglePlay = () => {
+    audio.togglePlay();
+  };
+  
+  // Get content info from context, preferring parsed info if main is generic
+  const rawTitle = audio.content?.title;
+  // Use parsed title if raw is "Untitled" OR if raw is missing
+  const displayTitle = (rawTitle && rawTitle !== 'Untitled') ? rawTitle : (parsedMeta.title || 'Untitled');
+  
+  const rawAuthor = audio.content?.author;
+  // Prefer parsed author if available (often better from text), else metadata
+  const displayAuthor = parsedMeta.author || rawAuthor || '';
+  
+  const source = audio.content?.source || '';
+  const wordCount = audio.content?.word_count || 0;
+  const readTime = Math.ceil(wordCount / 200); // ~200 words per minute
+  
+  // Helper to check if a chunk should be visually hidden
+  const isHiddenChunk = (chunk: string) => {
+    const clean = chunk.trim();
+    if (!clean) return true;
+    if (/^Title\s*:/i.test(clean)) return true;
+    if (/^Author\s*:/i.test(clean)) return true;
+    return false;
+  }
   
   return (
     <div 
@@ -580,16 +698,15 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
         pointerEvents: 'none',
       }} />
       
-      {/* Content Container - Scrollable */}
+      {/* Content Container - Fixed Height for layout */}
       <div style={{ 
         position: 'relative', 
         zIndex: 2, 
         width: '100%',
         padding: '0 24px', 
-        minHeight: '100vh',
+        height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        paddingBottom: '20px',
         boxSizing: 'border-box',
       }}>
         
@@ -600,6 +717,7 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
           justifyContent: 'space-between', 
           paddingTop: '32px', 
           marginBottom: '16px',
+          flexShrink: 0,
         }}>
           <button 
             onClick={() => navigate('/')} 
@@ -633,37 +751,44 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
           <div style={{ width: '44px' }} />
         </div>
         
-        {/* Title Section */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        {/* Title Section - Flexible height but usually fixed */}
+        <div style={{ textAlign: 'center', marginBottom: '16px', flexShrink: 0 }}>
+
           <h1 style={{ 
             fontSize: '28px', 
             fontWeight: 600, 
             fontFamily: 'Genos, sans-serif',
             marginBottom: '6px',
             lineHeight: 1.2,
+            maxWidth: '300px',
+            margin: '0 auto 6px',
+            textShadow: '0 2px 10px rgba(0,0,0,0.5)',
           }}>
-            The Future of Ai
+            {displayTitle}
           </h1>
           <p style={{ 
             fontSize: '14px', 
             color: 'rgba(255,255,255,0.5)',
             fontFamily: 'Genos, sans-serif',
           }}>
-            TechCrunch • 3 min read
+            {source}
+            {displayAuthor ? ` • ${displayAuthor}` : ''}
+            {readTime > 0 ? ` • ${readTime} min read` : ''}
           </p>
         </div>
         
-        {/* ElevenLabs Orb Visualizer - centered */}
+        {/* Visualizer Area - Flexible */}
         <div style={{ 
           width: '100%',
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          marginBottom: '16px',
+          marginBottom: '24px',
+          flexShrink: 0,
         }}>
           <div style={{ 
-            width: '200px', 
-            height: '200px',
+            width: '180px', 
+            height: '180px',
             borderRadius: '50%',
             overflow: 'hidden',
             background: '#000',
@@ -680,16 +805,17 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
           </div>
         </div>
         
-        {/* Scrub Bar below orb */}
+        {/* Scrub Bar */}
         <div style={{ 
           marginBottom: '20px',
-          padding: '0 16px',
+          padding: '0 8px',
+          flexShrink: 0,
         }}>
           <ScrubBarContainer
             duration={totalDuration}
             value={currentTime}
             onScrub={handleSeek}
-            onScrubStart={() => setIsPlaying(false)}
+            onScrubStart={() => audio.pause()}
             onScrubEnd={() => {}}
           >
             <ScrubBarTimeLabel time={currentTime} style={{ width: '36px', textAlign: 'left', fontSize: '12px', fontFamily: 'Genos, sans-serif' }} />
@@ -707,19 +833,20 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
           </ScrubBarContainer>
         </div>
         
-        {/* Controls Row: Share | SkipBack | Play | SkipForward | Speed */}
+        {/* Controls Row */}
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          gap: '12px',
-          marginBottom: '20px',
+          gap: '16px',
+          marginBottom: '24px',
+          flexShrink: 0,
         }}>
-          {/* Share Button - dark circle */}
+          {/* Share Button */}
           <button 
             style={{ 
-              width: '48px',
-              height: '48px',
+              width: '44px',
+              height: '44px',
               background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)',
               border: '1px solid rgba(255,255,255,0.1)', 
               borderRadius: '50%', 
@@ -728,18 +855,17 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.3)',
             }}
           >
-            <Share2 size={18} />
+            <Share2 size={16} />
           </button>
           
-          {/* Skip Back - white oval */}
+          {/* Skip Back */}
           <button 
-            onClick={() => setCurrentTime(Math.max(0, currentTime - 15))} 
+            onClick={() => audio.seek(Math.max(0, currentTime - 15))} 
             style={{ 
-              width: '52px',
-              height: '44px',
+              width: '48px',
+              height: '40px',
               background: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 100%)',
               border: '1px solid rgba(255,255,255,0.8)', 
               borderRadius: '50%',
@@ -748,15 +874,14 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.3)',
             }}
           >
             <SkipBack size={18} fill="#050505" />
           </button>
           
-          {/* Play/Pause - larger white oval */}
+          {/* Play/Pause */}
           <button 
-            onClick={() => setIsPlaying(!isPlaying)} 
+            onClick={togglePlay} 
             style={{ 
               width: '64px', 
               height: '56px', 
@@ -767,22 +892,22 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.9), 0 3px 10px rgba(0,0,0,0.3)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
             }}
           >
             {isPlaying ? (
-              <Pause size={26} fill="#050505" color="#050505" />
+              <Pause size={28} fill="#050505" color="#050505" />
             ) : (
-              <Play size={26} fill="#050505" color="#050505" style={{ marginLeft: '3px' }} />
+              <Play size={28} fill="#050505" color="#050505" style={{ marginLeft: '4px' }} />
             )}
           </button>
           
-          {/* Skip Forward - white oval */}
+          {/* Skip Forward */}
           <button 
-            onClick={() => setCurrentTime(Math.min(totalDuration, currentTime + 15))} 
+            onClick={() => audio.seek(Math.min(totalDuration, currentTime + 15))} 
             style={{ 
-              width: '52px',
-              height: '44px',
+              width: '48px',
+              height: '40px',
               background: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 100%)',
               border: '1px solid rgba(255,255,255,0.8)', 
               borderRadius: '50%',
@@ -791,57 +916,56 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.3)',
             }}
           >
             <SkipForward size={18} fill="#050505" />
           </button>
           
-          {/* Speed Toggle - dark circle with fixed size */}
+          {/* Speed Toggle */}
           <button 
             onClick={cycleSpeed}
             style={{ 
-              width: '48px',
-              height: '48px',
+              width: '44px',
+              height: '44px',
               background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)',
               border: '1px solid rgba(255,255,255,0.1)', 
-              borderRadius: '50%',
+              borderRadius: '50%', 
               cursor: 'pointer', 
               color: '#fff',
-              fontSize: '13px',
+              fontSize: '12px',
               fontWeight: 600,
               fontFamily: 'Genos, sans-serif',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.3)',
             }}
           >
-            {playbackSpeed}x
+            {audio.playbackSpeed}x
           </button>
         </div>
         
-        {/* Contents Section - Spotify-style with sticky header and fade */}
-        <div style={{ 
-          background: '#1a1a1a',
-          borderRadius: '24px',
-          border: '1px solid rgba(255,255,255,0.1)',
-          marginBottom: '16px',
-          minHeight: '320px',
-          maxHeight: '350px',
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-          position: 'relative',
-        }} className="hide-scrollbar">
+        {/* Contents Section - Auto-scrolling */}
+        <div 
+          ref={scrollRef} // Attached ref for auto-scroll
+          className="hide-scrollbar"
+          style={{ 
+            flex: 1, // Take remaining space
+            marginBottom: '20px',
+            background: '#1a1a1a',
+            borderRadius: '24px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            position: 'relative',
+          }} 
+        >
           {/* Sticky Contents header with fade effect */}
           <div style={{ 
             position: 'sticky',
             top: 0,
-            background: 'linear-gradient(to bottom, #1a1a1a 0%, #1a1a1a 60%, transparent 100%)',
-            padding: '24px 24px 32px 24px',
-            zIndex: 1,
+            background: 'linear-gradient(to bottom, #1a1a1a 0%, #1a1a1a 80%, transparent 100%)',
+            padding: '24px 24px 16px 24px',
+            zIndex: 10,
           }}>
             <p style={{ 
               fontSize: '14px', 
@@ -857,72 +981,49 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
           {/* Lyrics/Text Content - with padding for spacing */}
           <div style={{ 
             fontSize: '16px', 
-            lineHeight: 2,
+            lineHeight: 1.8,
             fontFamily: 'Genos, sans-serif',
-            padding: '0 24px 24px 24px',
-            marginTop: '-16px',
+            padding: '0 24px 48px 24px', // Extra bottom padding for scroll comfort
+            marginTop: '-8px',
+            color: 'rgba(255,255,255,0.7)',
+            whiteSpace: 'pre-wrap',
           }}>
-            <p style={{ 
-              color: currentTime < 60 ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.35)',
-              transition: 'color 0.3s ease, font-weight 0.3s ease',
-              marginBottom: '12px',
-              fontWeight: currentTime < 60 ? 700 : 400,
-            }}>
-              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
-            </p>
-            <p style={{ 
-              color: currentTime >= 60 && currentTime < 120 ? 'rgba(255,255,255,1)' : 'rgba(255,255,255,0.35)',
-              transition: 'color 0.3s ease, font-weight 0.3s ease',
-              marginBottom: '12px',
-              fontWeight: currentTime >= 60 && currentTime < 120 ? 700 : 400,
-            }}>
-              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
-            </p>
-            <p style={{ 
-              color: 'rgba(255,255,255,0.35)',
-              marginBottom: '12px',
-            }}>
-              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
-            </p>
-            <p style={{ 
-              color: 'rgba(255,255,255,0.35)',
-              marginBottom: '12px',
-            }}>
-              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
-            </p>
-            <p style={{ 
-              color: 'rgba(255,255,255,0.35)',
-              marginBottom: '12px',
-            }}>
-              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
-            </p>
-            <p style={{ 
-              color: 'rgba(255,255,255,0.35)',
-              marginBottom: '12px',
-            }}>
-              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
-            </p>
-            <p style={{ 
-              color: 'rgba(255,255,255,0.35)',
-            }}>
-              Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics Lyrics
-            </p>
+            {audio.nativeChunks.length > 0 ? (
+              audio.nativeChunks.map((chunk, i) => (
+                !isHiddenChunk(chunk) && (
+                  <p 
+                    key={i} 
+                    id={`chunk-${i}`} // ID for scroll targeting
+                    style={{ 
+                      marginBottom: '16px',
+                      color: i === audio.currentChunkIndex ? '#fff' : 'rgba(255,255,255,0.5)', 
+                      opacity: i === audio.currentChunkIndex ? 1 : 0.6,
+                      fontSize: i === audio.currentChunkIndex ? '17px' : '16px',
+                      transform: i === audio.currentChunkIndex ? 'scale(1.02)' : 'scale(1)',
+                      transformOrigin: 'left center',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      padding: '4px 0',
+                    }}>
+                    {chunk}
+                  </p>
+                )
+              ))
+            ) : audio.content?.content ? (
+              audio.content.content
+                .split('\n\n')
+                .map((para, i) => (
+                  <p key={i} style={{ marginBottom: '16px' }}>
+                    {para.replace(/[#*]/g, '')}
+                  </p>
+                ))
+            ) : (
+              <p>Content not available.</p>
+            )}
+            
+            {/* Spacer at bottom to allow potential scrolling of last element to center */}
+            <div style={{ height: '40%' }} />
           </div>
-        </div>
-        
-        {/* Made with love footer - lower position */}
-        <div style={{ 
-          textAlign: 'center',
-          paddingTop: '16px',
-          paddingBottom: '48px',
-        }}>
-          <p style={{ 
-            fontSize: '14px', 
-            color: 'rgba(255,255,255,0.5)',
-            fontFamily: 'Genos, sans-serif',
-          }}>
-            Made with ❤️ by Nabaskar
-          </p>
+
         </div>
       </div>
     </div>
@@ -1539,14 +1640,6 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
           <div style={{ marginBottom: '20px' }}>
             <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', paddingLeft: '4px' }}>Playback</p>
             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '14px', overflow: 'hidden' }}>
-              {/* Default Voice */}
-              <div style={{ display: 'flex', alignItems: 'center', padding: '14px', cursor: 'pointer' }}>
-                <Mic size={18} style={{ color: 'rgba(255,255,255,0.4)', marginRight: '12px' }} />
-                <span style={{ flex: 1, fontSize: '15px', fontFamily: 'Funnel Display, sans-serif' }}>Default Voice</span>
-                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginRight: '8px' }}>Nova</span>
-                <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
-              </div>
-              
               {/* Playback Speed - Free Scrub Bar */}
               <div style={{ padding: '14px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
@@ -1874,7 +1967,9 @@ function AppLayout() {
 function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      <AudioProvider>
+        <AppLayout />
+      </AudioProvider>
     </BrowserRouter>
   );
 }

@@ -116,20 +116,18 @@ POST /api/extract
 Body: { url: string }
 Response: { title, content, wordCount, source, author, publishDate }
 ```
-- Extract text from URLs (articles, tweets, threads)
-- Support: Twitter/X, Medium, Substack, general websites
-- HTML parsing and content cleaning
+- Extract text from URLs (articles, tweets, threads) ✅
+- Support: Twitter/X, Medium, Substack, general websites ✅
+- HTML parsing and content cleaning (AI Powered) ✅
 
-#### 2. Text-to-Speech API
-```
-POST /api/tts
-Body: { text: string, voice: string, speed: number }
-Response: { audioUrl: string, duration: number }
-```
-- Integration with ElevenLabs API
-- Voice options: Nova, Aria, etc.
-- Speed control (0.5x - 2.5x)
-- Streaming audio support
+#### 2. Text-to-Speech Engine
+- **Engine**: Browser Native TTS (SpeechSynthesis) 🤖
+- **Cost**: Free & Unlimited ✅
+- **Features**: 
+  - Sentence-level Chunking for seeking
+  - Speed control (0.5x - 2.5x)
+  - Client-side generation (Privacy focused)
+  - No API keys required
 
 #### 3. User Library API
 ```
