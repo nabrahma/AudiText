@@ -1,10 +1,10 @@
 # AudiText - Implementation Status
 
 ## Overview
-React Web PWA with premium "Reactive Noir" design theme featuring animated WebGL backgrounds, chrome effects, and dynamic color palettes.
+React Web PWA for converting articles, tweets, and web content into audio. Features premium "Reactive Noir" design with animated WebGL backgrounds, chrome effects, and dynamic color palettes.
 
-**Last Updated:** 2025-12-13 16:21 IST  
-**Checkpoint:** v1-home-complete (Checkpoint 0)
+**Last Updated:** 2025-12-17 18:48 IST  
+**Status:** Frontend Complete ✅ | Backend Required 🚧
 
 ---
 
@@ -17,183 +17,239 @@ AudiText/
 │   ├── index.css                  # Theme, typography, animations
 │   ├── main.tsx                   # Entry point
 │   └── components/
-│       ├── DarkVeil.tsx           # WebGL shader background (React Bits)
-│       ├── ShimmeringText.tsx     # Animated gradient text + cycling
-│       └── icons/
-│           ├── HouseIcon.tsx
-│           ├── BookOpenTextIcon.tsx
-│           └── SettingsIcon.tsx
-├── src/checkpoints/
-│   └── v1-home-complete/          # Checkpoint 0 backup
+│       ├── DarkVeil.tsx           # WebGL CPPN shader background
+│       ├── Dither.tsx             # Animated dither pattern (optimized)
+│       ├── DotGrid.tsx            # Interactive dot grid (GSAP, optimized)
+│       ├── Noise.tsx              # Film grain overlay
+│       ├── Orb.tsx                # ElevenLabs audio visualizer (Three.js)
+│       ├── ScrubBar.tsx           # Reusable scrub bar component
+│       ├── ShimmeringText.tsx     # Animated gradient text
+│       └── icons/                 # Lucide-style custom icons
 ├── public/
-├── vite.config.ts
 ├── package.json
-└── index.html
+└── vite.config.ts
 ```
 
 ---
 
-## 📱 Pages Overview
+## 📱 Frontend Features (Complete)
 
-### 1. Home Page (`/`) ✅ COMPLETE
-**The main landing page with hero section and URL input.**
+### 1. Home Page (`/`)
+| Feature | Implementation |
+|---------|----------------|
+| DarkVeil Background | WebGL CPPN shader with palette-synced hue shifts |
+| Rotating Words | Animated cycling: Tweets, Articles, Blogs, News, Threads, Posts |
+| URL Input | Glassmorphic pill with placeholder text |
+| Start Listening | Primary CTA button navigates to player |
+| Noise Overlay | Film grain texture overlay |
 
-| Element | Details |
-|---------|---------|
-| **Background** | DarkVeil WebGL shader (fullscreen, palette-synced hue shifts) |
-| **Version Badge** | "v1.0" in Genos Italic, centered top |
-| **Logo** | Green circle + "AudiText" text |
-| **Hero Typography** | "Listen to [Audio] of [Rotating Words]." with dot |
-| **Text Pills** | Outline-only with shine animation (`.shine-pill`) |
-| **ShimmeringText** | Gradient fill animation, cycling for rotating words |
-| **Subtitle** | "From your favorite X account and Websites." |
-| **Input Section** | URL input pill + "Start Listening" button |
-| **Navigation** | Floating compact nav bar with chrome effect |
+### 2. Player Page (`/player`)
+| Feature | Implementation |
+|---------|----------------|
+| Dither Background | Optimized canvas animation (25% resolution, 20fps) |
+| Orb Visualizer | ElevenLabs-style Three.js animated orb (200px) |
+| Scrub Bar | Functional seeker with time labels (0:45 / 3:00) |
+| Speed Control | Cycle: 1x → 1.25x → 1.5x → 2x |
+| Lyrics Display | Sticky header with fade, active line highlighting |
+| Content Source | Article title, source, word count display |
 
-**Key Styling:**
-- Fonts: Genos Italic (pills), Funnel Display (headings/body)
-- Pills: 42px height, 100px border-radius, 1.5px border
-- Centered content: maxWidth 390px, padding 24px
+### 3. Library Page (`/library`)
+| Feature | Implementation |
+|---------|----------------|
+| Filter Tabs | All, Favorites, Saved, Tweets, Articles |
+| Item Cards | Progress bars, platform icons, favorite toggle |
+| Sample Data | 5 demo items (Twitter, Medium, Substack, Web) |
+| Scroll | Hidden scrollbar with scroll capability |
 
----
+### 4. Settings Page (`/settings`)
+| Feature | Implementation |
+|---------|----------------|
+| Default Voice | Voice selection (Nova, etc.) |
+| Playback Speed | ScrubBar component (0.5x - 2.5x) |
+| Auto-Archive | Toggle with 30-day description |
+| Clear Cache | Action button |
+| Haptics | Toggle switch |
+| Hidden Scrollbar | CSS scrollbar hiding |
 
-### 2. Player Page (`/player`) ✅ BASIC
-**Audio playback with visualizer orb.**
-
-| Element | Details |
-|---------|---------|
-| **Background** | Solid black with palette glow |
-| **Back Button** | ChevronDown to return home |
-| **Gemini Orb** | SVG-based animated visualizer (200px) |
-| **Playback Controls** | Skip Back, Play/Pause, Skip Forward |
-| **Progress Bar** | Current time / Duration with scrubber |
-| **Title/Subtitle** | Article title display |
-| **Mode Toggle** | BLOB/AURORA visual modes |
-
-**Note:** Nav bar hidden on player page.
-
----
-
-### 3. Library Page (`/library`) ✅ BASIC
-**Reading history and stats.**
-
-| Element | Details |
-|---------|---------|
-| **Header** | "Library" title |
-| **Stats Cards** | Hours listened, Articles, Streak |
-| **Article List** | Placeholder items with icons |
-| **Page Style** | Matches app theme |
-
-**Needs:** Real data integration, empty state design.
-
----
-
-### 4. Settings Page (`/settings`) ✅ BASIC
-**User preferences and account.**
-
-| Element | Details |
-|---------|---------|
-| **Header** | "Settings" title |
-| **Profile Card** | User avatar, name, email |
-| **Settings Groups** | Grouped preference items |
-| **Chevron Icons** | Right arrows for navigation |
-
-**Needs:** Functional settings, theme picker, voice options.
+### 5. Desktop Phone Mockup
+| Feature | Implementation |
+|---------|----------------|
+| iPhone Frame | CSS-only metallic frame (360x740px) |
+| DotGrid Background | Interactive GSAP dot grid with spatial partitioning |
+| Conditional Scaling | Player page 100%, other pages scaled 0.88 |
+| Footer | "Made with ❤️ by nabaskar" (bottom-right) |
 
 ---
 
 ## 🎨 Design System
 
-### Color Palettes (Dynamic)
-Random palette on home page visit:
-
-| Palette | Primary | Secondary | Tertiary | Hue Shift |
-|---------|---------|-----------|----------|-----------|
-| **Ember** | #FF6B35 | #FF8C42 | #FFD166 | 0° |
-| **Sunset** | #E63946 | #FF6B6B | #FFA07A | 30° |
-| **Aurora** | #00E5A0 | #00C9A7 | #4DFFD2 | 120° |
-| **Violet** | #A855F7 | #C084FC | #E9D5FF | 270° |
-| **Gold** | #F59E0B | #FBBF24 | #FDE68A | 45° |
+### Color Palettes
+| Palette | Primary | Secondary | Hue Shift |
+|---------|---------|-----------|-----------|
+| Ember | #FF6B35 | #FF8C42 | 0° |
+| Sunset | #E63946 | #FF6B6B | 30° |
+| Aurora | #00E5A0 | #00C9A7 | 120° |
+| Violet | #A855F7 | #C084FC | 270° |
+| Gold | #F59E0B | #FBBF24 | 45° |
 
 ### Typography
-| Use Case | Font | Size | Weight |
-|----------|------|------|--------|
-| Pill Text | Genos | 20px | 400 Italic |
-| Hero Headings | Funnel Display | 48px | 800 |
-| Body Text | Funnel Display | 19.2px | 300 |
-| Nav Labels | Funnel Display | 10px | 500/600 |
-| Version | Genos | 13px | 400 Italic |
+| Element | Font | Weight |
+|---------|------|--------|
+| Headings | Funnel Display | 800 |
+| Body | Funnel Display | 300-400 |
+| Pills/Labels | Genos | 400 Italic |
 
-### CSS Effects
-
-| Class | Effect |
-|-------|--------|
-| `.shine-pill` | Animated chrome outline sweep (4s loop) |
-| `.chrome-pill` | Static chrome gradient outline |
-| `.nav-noise` | SVG fractal noise texture overlay |
-| `@keyframes shimmer` | Gradient text fill animation |
+### Performance Optimizations
+- **Dither**: 25% resolution, 20fps, sin lookup table, buffer reuse
+- **DotGrid**: Spatial partitioning, pre-rendered sprites, native lerp
+- **DPR Capping**: Max 2x for all canvas elements
 
 ---
 
-## 🧩 Key Components
+## 🚧 Backend Requirements
 
-### DarkVeil (WebGL Background)
-- **Source:** React Bits library (OGL-based)
-- **Props:** `hueShift`, `speed`, `noiseIntensity`, `warpAmount`
-- **Current Config:** speed=0.6, noise=0.15, warp=0.5
+### Core APIs Needed
 
-### ShimmeringText
-- **Purpose:** Animated gradient text with optional cycling
-- **Props:** `cycling`, `cycleItems`, `cycleInterval`, `shimmerDuration`
-- **Used For:** "Audio" pill (static), Rotating words pill (cycling)
+#### 1. Content Extraction API
+```
+POST /api/extract
+Body: { url: string }
+Response: { title, content, wordCount, source, author, publishDate }
+```
+- Extract text from URLs (articles, tweets, threads)
+- Support: Twitter/X, Medium, Substack, general websites
+- HTML parsing and content cleaning
 
-### Navigation
-- **Style:** Compact chrome pill with noise texture
-- **Icons:** 18px, labels 10px
-- **Active State:** White color (smooth 0.3s transition)
-- **Centering:** Wrapper div with maxWidth 390px
+#### 2. Text-to-Speech API
+```
+POST /api/tts
+Body: { text: string, voice: string, speed: number }
+Response: { audioUrl: string, duration: number }
+```
+- Integration with ElevenLabs API
+- Voice options: Nova, Aria, etc.
+- Speed control (0.5x - 2.5x)
+- Streaming audio support
 
-### RotatingWord
-- **Words:** Tweets, Articles, Blogs, News, Threads, Posts
-- **Animation:** ShimmeringText with cycling (2500ms interval)
+#### 3. User Library API
+```
+GET /api/library
+POST /api/library
+PATCH /api/library/:id
+DELETE /api/library/:id
+```
+- CRUD operations for saved content
+- Track listening progress
+- Favorite/archive functionality
+
+#### 4. User Settings API
+```
+GET /api/settings
+PUT /api/settings
+```
+- Default voice preference
+- Default playback speed
+- Auto-archive settings
+
+---
+
+## 🔐 User Authentication (Required)
+
+### Why Authentication?
+- Store user's listening history
+- Sync library across devices
+- Save user preferences
+- ElevenLabs API quotas per user
+
+### Recommended Approach
+
+#### Option A: Supabase Auth (Recommended)
+- Email/Password + Social logins (Google, GitHub)
+- Built-in PostgreSQL for user data
+- Row-level security for library items
+- Easy integration with React
+
+#### Option B: Firebase Auth
+- Email/Password + Social logins
+- Firestore for user data
+- Real-time sync capability
+
+#### Option C: Custom JWT
+- Self-hosted auth server
+- More control, more complexity
+
+### Auth Flow
+1. Sign up / Sign in page
+2. Email verification (optional)
+3. JWT tokens stored in localStorage
+4. Protected API routes
+5. Refresh token rotation
+
+---
+
+## 📋 Implementation Priority
+
+### Phase 1: Backend Foundation
+- [ ] Set up Node.js/Express or Next.js API routes
+- [ ] User authentication (Supabase recommended)
+- [ ] Database schema (users, library_items, settings)
+
+### Phase 2: Core Features
+- [ ] Content extraction API (URL → text)
+- [ ] ElevenLabs TTS integration
+- [ ] Library CRUD operations
+
+### Phase 3: Integration
+- [ ] Connect frontend to backend APIs
+- [ ] Audio streaming in player
+- [ ] Real library data (replace sample data)
+- [ ] Persist user settings
+
+### Phase 4: Polish
+- [ ] PWA: Service worker, offline support
+- [ ] Error handling and loading states
+- [ ] Rate limiting and quotas
+- [ ] Analytics and logging
 
 ---
 
 ## 🚀 Running
 
 ```bash
-cd "d:\For coding\AudiText"
+# Development
 npm run dev -- --host
+
+# Build
+npm run build
 ```
 
 **Local:** http://localhost:5173/
 
 ---
 
-## 📋 Next Steps
+## � Dependencies
 
-### Priority Tasks
-- [ ] Library page: Real reading history data
-- [ ] Settings page: Functional preferences
-- [ ] Player page: Connect to actual audio source
-- [ ] PWA: Service worker, offline support
+### Current (Frontend)
+- React 19 + TypeScript
+- Vite
+- React Router DOM
+- Three.js + @react-three/fiber (Orb)
+- GSAP (DotGrid animations)
+- OGL (DarkVeil shader)
+- Lucide React (icons)
 
-### Future Enhancements
-- [ ] Voice selection (ElevenLabs voices)
-- [ ] Theme persistence
-- [ ] Reading speed control
-- [ ] Share functionality
-- [ ] Onboarding flow
+### Required (Backend)
+- Express.js or Next.js API routes
+- Supabase (auth + database) or Firebase
+- ElevenLabs SDK
+- Cheerio/Puppeteer (content extraction)
+- Node.js stream handling
 
 ---
 
 ## 💾 Checkpoints
 
-| Version | Name | Date | Description |
-|---------|------|------|-------------|
-| 0 | v1-home-complete | 2025-12-13 | Complete Home UI with DarkVeil, ShimmeringText, chrome nav |
-
-**Restore Command:**
-```powershell
-Copy-Item "src\checkpoints\v1-home-complete\*" -Destination "src\" -Recurse -Force
-```
+| Version | Date | Description |
+|---------|------|-------------|
+| v1 | 2025-12-13 | Home page complete |
+| v2 | 2025-12-17 | All pages + desktop mockup + optimizations |

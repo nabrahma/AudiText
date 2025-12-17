@@ -1,5 +1,6 @@
 import DarkVeil from '@/components/DarkVeil';
 import { Dither } from '@/components/Dither';
+import DotGrid from '@/components/DotGrid';
 import { BookOpenTextIcon } from '@/components/icons/BookOpenTextIcon';
 import { HouseIcon } from '@/components/icons/HouseIcon';
 import { SettingsIcon } from '@/components/icons/SettingsIcon';
@@ -9,7 +10,7 @@ import { ScrubBar } from '@/components/ScrubBar';
 import ShimmeringText from '@/components/ShimmeringText';
 import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Eye, Mic, Pause, Play, Share2, SkipBack, SkipForward, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Mic, Pause, Play, Share2, SkipBack, SkipForward, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './index.css';
@@ -239,9 +240,9 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
       {/* DarkVeil Background - Fullscreen */}
       <div style={{
         position: 'fixed',
-        inset: 0, /* Fullscreen */
+        inset: 0,
         zIndex: 0,
-        transform: 'rotate(180deg)', /* Flip so effect comes from bottom */
+        transform: 'rotate(180deg)',
       }}>
         <DarkVeil 
           hueShift={PALETTE_HUE_SHIFTS[palette]}
@@ -556,7 +557,7 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
         position: 'fixed',
         inset: 0,
         zIndex: 0,
-        opacity: 0.5,
+        opacity: 0.25,
       }}>
         <Dither 
           waveColor="#606060"
@@ -584,13 +585,12 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
         position: 'relative', 
         zIndex: 2, 
         width: '100%',
-        maxWidth: '390px', 
-        margin: '0 auto', 
         padding: '0 24px', 
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         paddingBottom: '20px',
+        boxSizing: 'border-box',
       }}>
         
         {/* Header - pushed up */}
@@ -653,8 +653,9 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
           </p>
         </div>
         
-        {/* ElevenLabs Orb Visualizer - smaller to fit scrub bar */}
+        {/* ElevenLabs Orb Visualizer - centered */}
         <div style={{ 
+          width: '100%',
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
@@ -667,6 +668,7 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
             overflow: 'hidden',
             background: '#000',
             boxShadow: '0 0 40px rgba(0,0,0,0.5)',
+            flexShrink: 0,
           }}>
             <Orb 
               colors={["#CADCFC", "#A0B9D1"]}
@@ -1473,10 +1475,11 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
         width: '100%',
         maxWidth: '390px', 
         margin: '0 auto', 
-        padding: '0 24px', 
+        padding: '0 20px', 
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
+        boxSizing: 'border-box',
       }}>
         
         {/* Version - Same as Home */}
@@ -1515,9 +1518,9 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
           </p>
         </div>
         
-        {/* Scrollable Content Box */}
+        {/* Content Box - Scrollable without visible scrollbar */}
         <div 
-          className="library-list-scroll"
+          className="hide-scrollbar"
           style={{ 
             flex: 1,
             background: 'rgba(20, 20, 24, 0.85)',
@@ -1561,25 +1564,6 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
                   primaryColor={colors.primary}
                   secondaryColor={colors.secondary}
                 />
-              </div>
-            </div>
-          </div>
-          
-          {/* Appearance Group */}
-          <div style={{ marginBottom: '20px' }}>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', paddingLeft: '4px' }}>Appearance</p>
-            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '14px', overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '14px', cursor: 'pointer' }}>
-                <Eye size={18} style={{ color: 'rgba(255,255,255,0.4)', marginRight: '12px' }} />
-                <span style={{ flex: 1, fontSize: '15px', fontFamily: 'Funnel Display, sans-serif' }}>Theme</span>
-                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginRight: '8px' }}>Dark</span>
-                <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '14px', borderTop: '1px solid rgba(255,255,255,0.06)', cursor: 'pointer' }}>
-                <Sparkles size={18} style={{ color: 'rgba(255,255,255,0.4)', marginRight: '12px' }} />
-                <span style={{ flex: 1, fontSize: '15px', fontFamily: 'Funnel Display, sans-serif' }}>Visualizer</span>
-                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', marginRight: '8px' }}>Orb</span>
-                <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
               </div>
             </div>
           </div>
@@ -1641,6 +1625,214 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
   );
 }
 
+// ==================== PHONE MOCKUP WRAPPER (Desktop Only) ====================
+function PhoneMockup({ children }: { children: React.ReactNode }) {
+  const [isDesktop, setIsDesktop] = useState(false);
+  const location = useLocation();
+  const isPlayerPage = location.pathname === '/player';
+  
+  useEffect(() => {
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+  
+  if (!isDesktop) {
+    // Mobile/tablet: render app normally without phone frame
+    return <>{children}</>;
+  }
+  
+  // Desktop: render phone mockup with gradient background
+  return (
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      background: '#0a0a0a',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+      position: 'relative',
+    }}>
+      {/* Interactive DotGrid background - matching react-bits preview */}
+      <DotGrid 
+        dotSize={4}
+        gap={20}
+        baseColor="#2a2a40"
+        activeColor="#5227FF"
+        proximity={100}
+        shockRadius={180}
+        shockStrength={2}
+        returnSpeed={0.08}
+        excludeSelector="[data-phone-frame]"
+      />
+      
+      {/* Made with love footer - bottom right */}
+      <div style={{
+        position: 'absolute',
+        bottom: '24px',
+        right: '32px',
+        fontSize: '13px',
+        color: 'rgba(255, 255, 255, 0.4)',
+        fontFamily: 'Genos, sans-serif',
+        fontStyle: 'italic',
+        letterSpacing: '0.02em',
+        zIndex: 5,
+      }}>
+        Made with ❤️ by nabaskar
+      </div>
+      
+      {/* iPhone Frame - fits viewport */}
+      <div 
+        data-phone-frame
+        style={{
+        position: 'relative',
+        width: '360px',
+        height: '740px',
+        background: 'linear-gradient(145deg, #5a5a5a 0%, #4a4a4a 5%, #3a3a3a 15%, #2a2a2a 40%, #1a1a1a 70%, #0d0d0d 100%)',
+        borderRadius: '44px',
+        padding: '8px',
+        boxShadow: `
+          0 25px 70px rgba(0, 0, 0, 0.9),
+          0 0 0 1px rgba(255, 255, 255, 0.35),
+          0 0 0 2px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4),
+          inset 0 -1px 0 rgba(255, 255, 255, 0.1)
+        `,
+        zIndex: 10,
+      }}>
+        {/* Shiny metallic edge - left */}
+        <div style={{
+          position: 'absolute',
+          top: '15%',
+          bottom: '15%',
+          left: '0px',
+          width: '2px',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.4) 20%, rgba(255,255,255,0.5) 50%, rgba(255,255,255,0.4) 80%, transparent 100%)',
+          pointerEvents: 'none',
+        }} />
+        
+        {/* Shiny metallic edge - right */}
+        <div style={{
+          position: 'absolute',
+          top: '15%',
+          bottom: '15%',
+          right: '0px',
+          width: '2px',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.3) 20%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.3) 80%, transparent 100%)',
+          pointerEvents: 'none',
+        }} />
+        
+        {/* Phone bezel highlight - top edge shine */}
+        <div style={{
+          position: 'absolute',
+          top: '1px',
+          left: '10%',
+          right: '10%',
+          height: '2px',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 30%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0.5) 70%, transparent 100%)',
+          borderRadius: '1px',
+          pointerEvents: 'none',
+        }} />
+        
+        {/* Screen area - conditional scaling based on page */}
+        <div style={{
+          width: '100%',
+          height: '100%',
+          borderRadius: '36px',
+          overflow: 'hidden',
+          background: '#000',
+          position: 'relative',
+          // CRITICAL: transform creates a new containing block for position:fixed elements
+          transform: 'translateZ(0)',
+          isolation: 'isolate',
+        }}>
+          {isPlayerPage ? (
+            // Player page: NO scaling - orb needs 100% render for centering
+            <div style={{
+              width: '100%',
+              height: '100%',
+              overflow: 'auto',
+              position: 'relative',
+            }} className="hide-scrollbar">
+              {children}
+            </div>
+          ) : (
+            // Other pages: Apply transform scale
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '390px',
+              height: '844px',
+              transform: 'translate(-50%, -50%) scale(0.88)',
+              transformOrigin: 'center center',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                width: '100%',
+                height: '100%',
+                overflow: 'auto',
+                position: 'relative',
+              }} className="hide-scrollbar">
+                {children}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Side buttons - Mute switch */}
+        <div style={{
+          position: 'absolute',
+          left: '-2px',
+          top: '120px',
+          width: '3px',
+          height: '28px',
+          background: 'linear-gradient(90deg, #2a2a2a 0%, #4a4a4a 50%, #3a3a3a 100%)',
+          borderRadius: '2px 0 0 2px',
+        }} />
+        
+        {/* Volume up */}
+        <div style={{
+          position: 'absolute',
+          left: '-2px',
+          top: '162px',
+          width: '3px',
+          height: '52px',
+          background: 'linear-gradient(90deg, #2a2a2a 0%, #4a4a4a 50%, #3a3a3a 100%)',
+          borderRadius: '2px 0 0 2px',
+        }} />
+        
+        {/* Volume down */}
+        <div style={{
+          position: 'absolute',
+          left: '-2px',
+          top: '228px',
+          width: '3px',
+          height: '52px',
+          background: 'linear-gradient(90deg, #2a2a2a 0%, #4a4a4a 50%, #3a3a3a 100%)',
+          borderRadius: '2px 0 0 2px',
+        }} />
+        
+        {/* Power button */}
+        <div style={{
+          position: 'absolute',
+          right: '-2px',
+          top: '190px',
+          width: '3px',
+          height: '82px',
+          background: 'linear-gradient(270deg, #2a2a2a 0%, #4a4a4a 50%, #3a3a3a 100%)',
+          borderRadius: '0 2px 2px 0',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+
 // ==================== APP ====================
 function AppLayout() {
   const location = useLocation();
@@ -1660,7 +1852,7 @@ function AppLayout() {
     }, 100);
   };
   
-  return (
+  const appContent = (
     <div style={{ background: '#000', minHeight: '100vh' }}>
       <Routes location={location}>
         <Route path="/" element={<HomePage palette={palette} onVisit={handleHomeVisit} />} />
@@ -1670,6 +1862,12 @@ function AppLayout() {
       </Routes>
       <Navigation palette={palette} />
     </div>
+  );
+  
+  return (
+    <PhoneMockup>
+      {appContent}
+    </PhoneMockup>
   );
 }
 
@@ -1682,3 +1880,4 @@ function App() {
 }
 
 export default App;
+
