@@ -2176,6 +2176,7 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 // ==================== APP ====================
 function AppLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [palette, setPalette] = useState<PaletteKey>('ember');
   const [isTransitioning, setIsTransitioning] = useState(false);
   
@@ -2218,7 +2219,7 @@ function AppLayout() {
     checkAuthStatus();
 
     // Listen for auth changes (like OAuth redirect completion)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _) => {
       // If we just signed in and there's a hash in the URL, clear it
       if (event === 'SIGNED_IN') {
          if (window.location.hash.includes('access_token')) {
