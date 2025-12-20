@@ -2180,9 +2180,22 @@ function AppLayout() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   
   // Ensure we have an anonymous session on mount
+  // Ensure we have an anonymous session on mount & handle OAuth response
   useEffect(() => {
+    // Check initial auth state
     ensureAuth().catch(e => console.error('Auth error:', e));
-  }, []);
+
+    // Listen for auth changes (like OAuth redirect completion)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // If we just signed in and there's a hash in the URL, clear it
+      if (event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
+        // Keep the pathname (e.g. /library) but remove the hash
+        navigate(location.pathname, { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, location.pathname]);
   
   const handleHomeVisit = () => {
     if (isTransitioning) return;
