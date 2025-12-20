@@ -1155,6 +1155,9 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
+  const [pullStartY, setPullStartY] = useState(0);
+  const [pullMoveY, setPullMoveY] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1398,6 +1401,21 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             overflow: 'hidden',
           }}
         >
+          {/* Refresh Loading Overlay */}
+          {isRefreshing && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 20,
+              backdropFilter: 'blur(4px)',
+            }}>
+              <Loader2 className="animate-spin" size={32} color="white" />
+            </div>
+          )}
           {/* Search Input */}
           <div 
             style={{ 
@@ -1460,15 +1478,39 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             ))}
           </div>
           
-          {/* Article List - Scrollable */}
+          {/* Article List - Scrollable with Pull to Refresh */}
           <div 
             className="library-list-scroll"
+            onTouchStart={(e) => {
+              if (e.currentTarget.scrollTop === 0) {
+                setPullStartY(e.touches[0].clientY);
+              }
+            }}
+            onTouchMove={(e) => {
+              if (pullStartY > 0 && e.currentTarget.scrollTop === 0) {
+                const touchY = e.touches[0].clientY;
+                const diff = touchY - pullStartY;
+                if (diff > 0) {
+                  setPullMoveY(diff);
+                }
+              }
+            }}
+            onTouchEnd={() => {
+              if (pullMoveY > 120) { // Threshold to trigger refresh
+                setIsRefreshing(true);
+                window.location.reload();
+              }
+              setPullStartY(0);
+              setPullMoveY(0);
+            }}
             style={{ 
               flex: 1, 
               overflowY: 'auto',
               paddingRight: isGuest ? 0 : '8px',
               display: 'flex',
               flexDirection: 'column',
+              transform: pullMoveY > 0 ? `translateY(${Math.min(pullMoveY * 0.3, 100)}px)` : 'none',
+              transition: pullMoveY === 0 ? 'transform 0.3s ease' : 'none',
             }}
           >
             {isGuest ? (
