@@ -1153,6 +1153,7 @@ const SwipeableItem = ({
 function LibraryPage({ palette }: { palette: PaletteKey }) {
   const audio = useAudio();
   const navigate = useNavigate();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
   const [pullStartY, setPullStartY] = useState(0);
@@ -1337,17 +1338,45 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
       }} />
       
       {/* Content Container */}
-      <div style={{ 
-        position: 'relative', 
-        zIndex: 1, 
-        width: '100%',
-        maxWidth: '390px', 
-        margin: '0 auto', 
-        padding: '0 24px', 
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
+      <div 
+        onTouchStart={(e) => {
+          // Only enable pull if list is at top or doesn't exist
+          if (!scrollRef.current || scrollRef.current.scrollTop <= 0) {
+            setPullStartY(e.touches[0].clientY);
+          }
+        }}
+        onTouchMove={(e) => {
+          if (pullStartY > 0 && (!scrollRef.current || scrollRef.current.scrollTop <= 0)) {
+            const touchY = e.touches[0].clientY;
+            const diff = touchY - pullStartY;
+            // Only allow pulling down
+            if (diff > 0) {
+              setPullMoveY(diff);
+            }
+          }
+        }}
+        onTouchEnd={() => {
+          if (pullMoveY > 120) { 
+            setIsRefreshing(true);
+            window.location.reload();
+          }
+          setPullStartY(0);
+          setPullMoveY(0);
+        }}
+        style={{ 
+          position: 'relative', 
+          zIndex: 1, 
+          width: '100%',
+          maxWidth: '390px', 
+          margin: '0 auto', 
+          padding: '0 24px', 
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          transform: pullMoveY > 0 ? `translateY(${Math.min(pullMoveY * 0.4, 120)}px)` : 'none',
+          transition: pullMoveY === 0 ? 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none', // Smooth snap back
+        }}
+      >
         
         {/* Version - Same as Home */}
         <div style={{ paddingTop: '24px', textAlign: 'center' }}>
@@ -1478,39 +1507,16 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             ))}
           </div>
           
-          {/* Article List - Scrollable with Pull to Refresh */}
+          {/* Article List - Scrollable */}
           <div 
+            ref={scrollRef}
             className="library-list-scroll"
-            onTouchStart={(e) => {
-              if (e.currentTarget.scrollTop === 0) {
-                setPullStartY(e.touches[0].clientY);
-              }
-            }}
-            onTouchMove={(e) => {
-              if (pullStartY > 0 && e.currentTarget.scrollTop === 0) {
-                const touchY = e.touches[0].clientY;
-                const diff = touchY - pullStartY;
-                if (diff > 0) {
-                  setPullMoveY(diff);
-                }
-              }
-            }}
-            onTouchEnd={() => {
-              if (pullMoveY > 120) { // Threshold to trigger refresh
-                setIsRefreshing(true);
-                window.location.reload();
-              }
-              setPullStartY(0);
-              setPullMoveY(0);
-            }}
             style={{ 
               flex: 1, 
               overflowY: 'auto',
               paddingRight: isGuest ? 0 : '8px',
               display: 'flex',
               flexDirection: 'column',
-              transform: pullMoveY > 0 ? `translateY(${Math.min(pullMoveY * 0.3, 100)}px)` : 'none',
-              transition: pullMoveY === 0 ? 'transform 0.3s ease' : 'none',
             }}
           >
             {isGuest ? (
