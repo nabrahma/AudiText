@@ -48,7 +48,7 @@ Whether you're commuting with a long-form article or multitasking with a Twitter
   - **Deduplication Engine**: Detects and suppresses redundant information for seamless flow.
 
 ### 🎧 Immersive Playback Engine
-- **Neural TTS Integration**: Powered by **ElevenLabs** for ultra-low latency, emotive speech synthesis.
+- **Native Neural TTS**: Leverages the browser's built-in **Web Speech API** for unlimited, offline-capable speech synthesis without API quotas.
 - **WebGL Audio Visualizer**: A real-time, reactively animated "Orb" that pulses with voice amplitude (built with Three.js & OGL).
 - **Dynamic Speed Control**: Variable playback rates (0.5x - 2.5x) with pitch correction.
 
