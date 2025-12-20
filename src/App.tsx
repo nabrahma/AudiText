@@ -237,7 +237,7 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
   
   return (
     <div
-      style={{ height: '100%', position: 'relative', background: '#000', overflow: 'hidden' }}
+      style={{ height: '100dvh', position: 'relative', background: '#000', overflow: 'hidden' }}
     >
       {/* Toast Notification */}
       {toast && (
@@ -1293,7 +1293,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
   return (
     <div 
       style={{ 
-        height: '100%', 
+        height: '100dvh', 
         position: 'relative', 
         background: '#000',
         display: 'flex',
@@ -1341,7 +1341,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
         maxWidth: '390px', 
         margin: '0 auto', 
         padding: '0 24px', 
-        height: '100%',
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -1392,8 +1392,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: 'calc(90px + env(safe-area-inset-bottom))', /* Explicit gap for Nav */
-            minHeight: 0, /* Allow shrinking */
+            marginBottom: 'calc(140px + env(safe-area-inset-bottom))', /* Dynamic spacing for nav */
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -1803,7 +1802,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
         maxWidth: '390px', 
         margin: '0 auto', 
         padding: '0 20px', 
-        height: '100%',
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
@@ -1855,8 +1854,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: 'calc(90px + env(safe-area-inset-bottom))',
-            minHeight: 0, /* Allow shrinking */
+            marginBottom: 'calc(140px + env(safe-area-inset-bottom))',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
