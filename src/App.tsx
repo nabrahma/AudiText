@@ -1392,7 +1392,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: 'calc(80px + env(safe-area-inset-bottom))', /* Dynamic spacing for nav */
+            marginBottom: 'calc(140px + env(safe-area-inset-bottom))', /* Dynamic spacing for nav */
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -1854,7 +1854,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: 'calc(80px + env(safe-area-inset-bottom))', /* Dynamic spacing for nav */
+            marginBottom: 'calc(140px + env(safe-area-inset-bottom))', /* Dynamic spacing for nav */
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
