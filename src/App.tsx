@@ -1340,8 +1340,8 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
         width: '100%',
         maxWidth: '390px', 
         margin: '0 auto', 
-        padding: '0 24px', 
-        minHeight: '100vh',
+        padding: '0 24px 100px 24px', /* Added bottom padding for nav gap */
+        height: '100%', /* Fix: strict height to respect parent */
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -1392,7 +1392,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: 'calc(140px + env(safe-area-inset-bottom))', /* Dynamic spacing for nav */
+            marginBottom: '0', /* Managed by parent padding */
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -1801,8 +1801,8 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
         width: '100%',
         maxWidth: '390px', 
         margin: '0 auto', 
-        padding: '0 20px', 
-        minHeight: '100vh',
+        padding: '0 20px 100px 20px', /* Added bottom padding for nav gap */
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
@@ -1854,7 +1854,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: 'calc(140px + env(safe-area-inset-bottom))', /* Dynamic spacing for nav */
+            marginBottom: '0',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
