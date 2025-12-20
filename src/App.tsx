@@ -237,7 +237,7 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
   
   return (
     <div
-      style={{ minHeight: '100vh', position: 'relative', background: '#000' }}
+      style={{ height: '100dvh', position: 'relative', background: '#000', overflow: 'hidden' }}
     >
       {/* Toast Notification */}
       {toast && (
@@ -303,9 +303,11 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
         maxWidth: '390px', 
         margin: '0 auto', 
         padding: '0 24px', 
-        minHeight: '100vh', 
+        height: '100%', 
         display: 'flex', 
-        flexDirection: 'column' 
+        flexDirection: 'column',
+        overflowY: 'auto',  /* Allow internal scroll if absolutely necessary */
+        overflowX: 'hidden',
       }}>
         
         {/* Version - Moved up, Genos font, Italic */}

@@ -84,7 +84,7 @@ export function AuthPage({ palette }: { palette: PaletteKey }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', position: 'relative', background: '#000' }}>
+    <div style={{ height: '100dvh', position: 'relative', background: '#000', overflow: 'hidden' }}>
       
       {/* DarkVeil Background */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, transform: 'rotate(180deg)' }}>
@@ -105,9 +105,11 @@ export function AuthPage({ palette }: { palette: PaletteKey }) {
         maxWidth: '390px', 
         margin: '0 auto', 
         padding: '0 24px', 
-        minHeight: '100vh', 
+        height: '100%', 
         display: 'flex', 
-        flexDirection: 'column' 
+        flexDirection: 'column',
+        overflowY: 'auto',
+        overflowX: 'hidden'
       }}>
         
         {/* Header / Version */}
