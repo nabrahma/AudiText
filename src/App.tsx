@@ -1801,7 +1801,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
         width: '100%',
         maxWidth: '390px', 
         margin: '0 auto', 
-        padding: '0 20px', 
+        padding: '0 24px', 
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
