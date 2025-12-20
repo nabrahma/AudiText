@@ -11,10 +11,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'robots.txt'],
+      includeAssets: ['logo.svg', 'robots.txt'],
       manifest: {
-        name: 'Audiext',
-        short_name: 'Audiext',
+        name: 'AudiText',
+        short_name: 'AudiText',
         description: 'Listen to the Internet',
         theme_color: '#050505',
         background_color: '#050505',
