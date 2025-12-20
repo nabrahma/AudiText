@@ -1337,9 +1337,6 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
       <div style={{ 
         position: 'relative', 
         zIndex: 1, 
-      <div style={{ 
-        position: 'relative', 
-        zIndex: 1, 
         width: '100%',
         maxWidth: '390px', 
         margin: '0 auto', 
@@ -1799,9 +1796,6 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
       }} />
       
       {/* Content Container */}
-      <div style={{ 
-        position: 'relative', 
-        zIndex: 1, 
       <div style={{ 
         position: 'relative', 
         zIndex: 1, 
