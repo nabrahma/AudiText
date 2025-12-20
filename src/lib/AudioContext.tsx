@@ -28,7 +28,8 @@ interface AudioState {
 }
 
 interface AudioContextType extends AudioState {
-  processUrl: (url: string) => Promise<void>
+  processUrl: (url: string) => Promise<ExtractedContent | void>
+  playContent: (content: ExtractedContent) => void
   play: () => void
   pause: () => void
   togglePlay: () => void
@@ -43,20 +44,55 @@ const initialState: AudioState = {
   isPlaying: false,
   currentTime: 0,
   duration: 0,
-  playbackSpeed: 1,
+  playbackSpeed: Number(localStorage.getItem('audiotext_playback_speed')) || 1, // Read from storage
   nativeChunks: [],
   currentChunkIndex: 0,
   isExtracting: false,
   error: null,
 }
 
+const STORAGE_KEY = 'audiotext_player_state'
+
+const loadStateFromStorage = (): AudioState => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      // Restore playback speed separately as it has its own key/logic
+      const speed = Number(localStorage.getItem('audiotext_playback_speed')) || 1
+      return { 
+        ...initialState, 
+        ...parsed, 
+        isPlaying: false, // Always start paused
+        playbackSpeed: speed 
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load audio state', e)
+  }
+  return initialState
+}
+
 const AudioContext = createContext<AudioContextType | null>(null)
 
 export function AudioProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AudioState>(initialState)
+  const [state, setState] = useState<AudioState>(loadStateFromStorage)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
   const nativeTimerRef = useRef<number | null>(null)
   const isManualCancel = useRef(false)
+  
+  // Persist state changes
+  useEffect(() => {
+    const saveState = setTimeout(() => {
+      // Don't save if empty or extracting
+      if (!state.content || state.isExtracting) return
+      
+      const { isPlaying, isExtracting, error, ...stateToSave } = state
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave))
+    }, 1000) // Debounce 1s
+    
+    return () => clearTimeout(saveState)
+  }, [state])
   
   // Timer to simulate progress updates for native TTS
   const startNativeTimer = () => {
@@ -73,28 +109,56 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   // Clean text and split into chunks
   const prepareChunks = (content: ExtractedContent): string[] => {
     let text = content.content
-    
-    // 1. Remove Metadata Fluff (Skip if AI Cleaned)
-    if (!content.ai_cleaned) {
-       text = text
-        .replace(/(published|posted) on .+/gi, '')
-        .replace(/^\d{1,2} [a-z]+ \d{4}/gi, '') 
-        .replace(/!\[.*?\]\(.*?\)/g, '') 
-        .replace(/\[(.*?)\]\(.*?\)/g, '$1') 
-        .replace(/https?:\/\/\S+/g, '') 
-        .replace(/```[\s\S]*?```/g, '') 
-        .replace(/[#*_>~`]/g, '')
-        .replace(/^\s*[-+*]\s+/gm, '')
-        .replace(/share on .+/gi, '')
+    let title = content.title || ''
+    let author = content.author || 'Unknown'
+
+    // 1. Remove Metadata Fluff and Leading Hashtags
+    // Regex cleanup mainly for non-AI cleaned, but hashtags might persist even in AI cleaned.
+    text = text
+      .replace(/^#[A-Za-z0-9_]+\s+/gm, '') // Remove starting hashtags
+      .replace(/(published|posted) on .+/gi, '')
+      .replace(/^\d{1,2} [a-z]+ \d{4}/gi, '') 
+      .replace(/!\[.*?\]\(.*?\)/g, '') 
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') 
+      .replace(/https?:\/\/\S+/g, '') 
+      .replace(/```[\s\S]*?```/g, '') 
+      .replace(/[#*_>~`]/g, '') // Remove remaining markdown symbols
+      .replace(/^\s*[-+*]\s+/gm, '')
+      .replace(/share on .+/gi, '')
+      .trim()
+
+    // 2. Infer Author if Unknown
+    if (author === 'Unknown') {
+        const byMatch = text.match(/^(?:written |authored )?by\s+([A-Za-z ]+)/im)
+        if (byMatch && byMatch[1].length < 30) {
+            author = byMatch[1].trim()
+            // Remove the "By X" line to avoid repetition
+            text = text.replace(byMatch[0], '') 
+        }
     }
 
-    // 2. Add structured intro (if not present)
-    if (!/^Author:/.test(text)) {
-        const intro = `Author: ${content.author || 'Unknown'}. Title: ${content.title}.`
+    // 3. Remove Title/Author from body if they repeat exactly at the start
+    if (text.toLowerCase().startsWith(title.toLowerCase())) {
+        text = text.substring(title.length).trim()
+    }
+    const authorPattern = new RegExp(`^by ${author}`, 'i')
+    if (authorPattern.test(text)) {
+        text = text.replace(authorPattern, '').trim()
+    }
+    
+    // 4. Construct Smart Intro
+    // Only verify if we need to add it.
+    const intro = `${title}.` + (author !== 'Unknown' ? ` By ${author}.` : '')
+    
+    // If text doesn't start with the intro (roughly), prepend it.
+    if (!text.startsWith(title)) {
         text = `${intro}\n\n${text}`
     }
 
-    // 3. Split into sentences (approximate)
+    // 5. Clean up multiple newlines/spaces
+    text = text.replace(/\n{3,}/g, '\n\n').trim()
+
+    // 6. Split into sentences (approximate) including newlines as chunk breaks
     return text.match(/[^.!?\n]+[.!?\n]*/g) || [text]
   }
 
@@ -135,10 +199,42 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       }))
       
       speakChunk(chunks, 0, state.playbackSpeed)
+      
+      return content // Return content for immediate usage (e.g. saving to library)
 
     } catch (e) {
       setState(p => ({ ...p, isExtracting: false, error: String(e) }))
+      throw e // Re-throw to let caller handle/show error
     }
+  }
+
+  const playContent = (content: ExtractedContent) => {
+    window.speechSynthesis.cancel()
+    if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
+
+    // Reset state but keep speed
+    setState(prev => ({
+      ...initialState,
+      content: content,
+      playbackSpeed: prev.playbackSpeed,
+      isExtracting: false,
+    }))
+
+    // Prepare chunks
+    const chunks = prepareChunks(content)
+    const totalDuration = chunks.reduce((acc, chunk) => acc + (chunk.split(' ').length / 3), 0)
+
+    // Update state and play
+    setState(prev => ({
+      ...prev,
+      nativeChunks: chunks,
+      currentChunkIndex: 0,
+      duration: totalDuration || 60,
+      isPlaying: true
+    }))
+
+    // Start speaking immediately
+    speakChunk(chunks, 0, state.playbackSpeed)
   }
 
   const speakChunk = (chunks: string[], index: number, speed: number) => {
@@ -160,12 +256,15 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       playNext()
     }
     
-    // Set start time for this chunk
-    const progress = (index / chunks.length) * state.duration
-    setState(p => ({ ...p, currentChunkIndex: index, currentTime: progress }))
-    
     utteranceRef.current = u
     window.speechSynthesis.speak(u)
+    
+    // Set start time for this chunk using FUNCTIONAL UPDATE to ensure fresh state
+    setState(p => {
+      const progress = (index / chunks.length) * p.duration
+      return { ...p, currentChunkIndex: index, currentTime: progress }
+    })
+    
     startNativeTimer()
   }
 
@@ -226,7 +325,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AudioContext.Provider value={{ ...state, processUrl, play, pause, togglePlay, seek, setSpeed, reset }}>
+    <AudioContext.Provider value={{ ...state, processUrl, playContent, play, pause, togglePlay, seek, setSpeed, reset }}>
       {children}
     </AudioContext.Provider>
   )

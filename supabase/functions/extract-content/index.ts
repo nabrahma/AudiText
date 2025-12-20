@@ -32,14 +32,16 @@ async function cleanWithOpenRouter(rawText: string, apiKey: string): Promise<str
     Task: Clean the provided raw web extraction.
     
     Rules:
-    1. Start output with "Author: [Name]. Title: [Title]." (Infer if missing).
-    2. Extract ONLY the main article body or Social Media Post. 
-    3. Remove sidebars, navigation, "Published on", "Read time", "Share", footer text.
-    4. **CRITICAL**: If this is a Twitter/X or Social Media post, IGNORE "Login", "Sign Up", "See new posts" text. SEARCH for the actual user post/tweet content. It might be buried in the text.
-    5. Remove all Markdown images, links, and code blocks.
-    6. Remove URLs.
-    7. Fix spacing.
-    8. Only return "ERROR: Content unreadable" if there is ABSOLUTELY NO article/post content found (e.g. only a Login form).
+    1. **Format**: The FIRST LINE must be the Title as a Markdown Header 1. Example: "# Vitalik's thoughts on Ethereum".
+    2. **Format**: The SECOND LINE must be the Author. Example: "Author: Vitalik Buterin".
+    3. **Title Generation**: If the content is a tweet or status update without a clear title, generate a short, descriptive title like "[Author]'s Tweet about [Topic]".
+    4. Extract ONLY the main article body or Social Media Post. 
+    5. Remove sidebars, navigation, "Published on", "Read time", "Share", footer text.
+    6. **CRITICAL**: If this is a Twitter/X or Social Media post, IGNORE "Login", "Sign Up", "See new posts" text. SEARCH for the actual user post/tweet content. It might be buried in the text.
+    7. Remove all Markdown images, links, and code blocks.
+    8. Remove URLs.
+    9. Fix spacing.
+    10. Only return "ERROR: Content unreadable" if there is ABSOLUTELY NO article/post content found (e.g. only a Login form).
     
     Raw Text:
     ${rawText.slice(0, 20000)}
@@ -87,14 +89,16 @@ async function cleanWithGemini(rawText: string, apiKey: string): Promise<string 
     Task: Clean the provided raw web extraction.
     
     Rules:
-    1. Start output with "Author: [Name]. Title: [Title]." (Infer if missing).
-    2. Extract ONLY the main article body or Social Media Post. 
-    3. Remove sidebars, navigation, "Published on", "Read time", "Share", footer text.
-    4. **CRITICAL**: If this is a Twitter/X or Social Media post, IGNORE "Login", "Sign Up", "See new posts" text. SEARCH for the actual user post/tweet content. It might be buried in the text.
-    5. Remove all Markdown images, links, and code blocks.
-    6. Remove URLs.
-    7. Fix spacing.
-    8. Only return "ERROR: Content unreadable" if there is ABSOLUTELY NO article/post content found (e.g. only a Login form).
+    1. **Format**: The FIRST LINE must be the Title as a Markdown Header 1. Example: "# Vitalik's thoughts on Ethereum".
+    2. **Format**: The SECOND LINE must be the Author. Example: "Author: Vitalik Buterin".
+    3. **Title Generation**: If the content is a tweet or status update without a clear title, generate a short, descriptive title like "[Author]'s Tweet about [Topic]".
+    4. Extract ONLY the main article body or Social Media Post. 
+    5. Remove sidebars, navigation, "Published on", "Read time", "Share", footer text.
+    6. **CRITICAL**: If this is a Twitter/X or Social Media post, IGNORE "Login", "Sign Up", "See new posts" text. SEARCH for the actual user post/tweet content. It might be buried in the text.
+    7. Remove all Markdown images, links, and code blocks.
+    8. Remove URLs.
+    9. Fix spacing.
+    10. Only return "ERROR: Content unreadable" if there is ABSOLUTELY NO article/post content found.
     
     Raw Text:
     ${rawText.slice(0, 20000)}

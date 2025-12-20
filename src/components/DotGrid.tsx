@@ -288,7 +288,7 @@ const DotGrid: React.FC<DotGridProps> = ({
 
   // Mouse/click handlers with spatial partitioning
   useEffect(() => {
-    let moveTimeout: NodeJS.Timeout;
+    let moveTimeout: ReturnType<typeof setTimeout>;
 
     const onMove = (e: MouseEvent) => {
       if (isInsideExcludedArea(e)) {

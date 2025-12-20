@@ -15,6 +15,7 @@ dist-ssr
 # Supabase secrets
 supabase/.env.local
 supabase/.env
+.env
 
 # Editor directories and files
 .vscode/*

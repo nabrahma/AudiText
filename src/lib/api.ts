@@ -61,7 +61,19 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
 // Library Operations
 // ============================================
 
+/**
+ * Ensure the user is authenticated (anonymously if needed)
+ */
+export async function ensureAuth() {
+  // We no longer auto-sign in anonymously. 
+  // Auth is now explicit.
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
+}
+
 export async function getLibraryItems(): Promise<LibraryItem[]> {
+  await ensureAuth();
+  
   const { data, error } = await supabase
     .from('library_items')
     .select('*')
@@ -74,6 +86,8 @@ export async function getLibraryItems(): Promise<LibraryItem[]> {
 export async function addToLibrary(
   item: Omit<LibraryItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>
 ): Promise<LibraryItem> {
+  await ensureAuth();
+  
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
@@ -94,6 +108,8 @@ export async function updateLibraryItem(
   id: string, 
   updates: Partial<LibraryItem>
 ): Promise<LibraryItem> {
+  await ensureAuth();
+  
   const { data, error } = await supabase
     .from('library_items')
     .update(updates)
@@ -106,6 +122,8 @@ export async function updateLibraryItem(
 }
 
 export async function deleteLibraryItem(id: string): Promise<void> {
+  await ensureAuth();
+  
   const { error } = await supabase
     .from('library_items')
     .delete()

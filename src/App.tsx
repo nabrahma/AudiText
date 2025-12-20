@@ -9,62 +9,21 @@ import { Orb } from '@/components/Orb';
 import { ScrubBar } from '@/components/ScrubBar';
 import ShimmeringText from '@/components/ShimmeringText';
 import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
+import { addToLibrary, deleteLibraryItem, ensureAuth, getLibraryItems, toggleFavorite, type LibraryItem } from '@/lib/api';
 import { AudioProvider, useAudio } from '@/lib/AudioContext';
-import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Loader2, Pause, Play, Share2, SkipBack, SkipForward, Sparkles } from 'lucide-react';
+import { AnimatePresence, motion, useAnimation, type PanInfo } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Loader2, LogOut, Pause, Play, Share2, SkipBack, SkipForward, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import './index.css';
 
-// ==================== WARM PALETTES ====================
-const PALETTES = {
-  ember: {
-    colors: ['#FF6B35', '#FF8C42', '#FFD166', '#000000'],
-    primary: '#FF6B35',
-    secondary: '#FF8C42',
-    tertiary: '#FFD166',
-    glow: 'rgba(255, 107, 53, 0.6)',
-  },
-  sunset: {
-    colors: ['#E63946', '#FF6B6B', '#FFA07A', '#000000'],
-    primary: '#E63946',
-    secondary: '#FF6B6B',
-    tertiary: '#FFA07A',
-    glow: 'rgba(230, 57, 70, 0.6)',
-  },
-  aurora: {
-    colors: ['#00E5A0', '#00C9A7', '#4DFFD2', '#000000'],
-    primary: '#00E5A0',
-    secondary: '#00C9A7',
-    tertiary: '#4DFFD2',
-    glow: 'rgba(0, 229, 160, 0.6)',
-  },
-  violet: {
-    colors: ['#A855F7', '#C084FC', '#E9D5FF', '#000000'],
-    primary: '#A855F7',
-    secondary: '#C084FC',
-    tertiary: '#E9D5FF',
-    glow: 'rgba(168, 85, 247, 0.6)',
-  },
-  gold: {
-    colors: ['#F59E0B', '#FBBF24', '#FDE68A', '#000000'],
-    primary: '#F59E0B',
-    secondary: '#FBBF24',
-    tertiary: '#FDE68A',
-    glow: 'rgba(245, 158, 11, 0.6)',
-  },
-};
-type PaletteKey = keyof typeof PALETTES;
-const PALETTE_KEYS: PaletteKey[] = ['ember', 'sunset', 'aurora', 'violet', 'gold'];
+import { supabase } from '@/lib/supabase';
+import { PALETTES, PALETTE_HUE_SHIFTS, PALETTE_KEYS, type PaletteKey } from '@/lib/theme';
+import { AuthPage } from './AuthPage';
 
-// Hue shift values for DarkVeil background per palette
-const PALETTE_HUE_SHIFTS: Record<PaletteKey, number> = {
-  ember: 0,      // Orange/red - base color
-  sunset: 30,    // Red/pink shift
-  aurora: 120,   // Green shift
-  violet: 270,   // Purple shift
-  gold: 45,      // Yellow/gold shift
-};
+
+
+
 
 // ==================== ROTATING WORD CAROUSEL ====================
 const ROTATING_WORDS = ['Tweets', 'Articles', 'Blogs', 'News', 'Threads', 'Posts'];
@@ -98,43 +57,20 @@ function RotatingWord() {
   );
 }
 
-// ==================== GEMINI ORB ====================
-function GeminiOrb({ amplitude = 0, size = 200, palette = 'ember' }: { amplitude?: number; size?: number; palette?: PaletteKey }) {
-  const colors = PALETTES[palette];
-  const baseSize = size * 0.2;
-  const pulseScale = 1 + amplitude * 0.3;
-  
-  return (
-    <div style={{ position: 'relative', width: size, height: size }}>
-      <div style={{
-        position: 'absolute', inset: -30, borderRadius: '50%',
-        background: `radial-gradient(ellipse, ${colors.glow} 0%, transparent 70%)`,
-        opacity: 0.4 + amplitude * 0.4, transition: 'opacity 0.3s',
-      }} />
-      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
-        <defs><filter id="goo"><feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" /><feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8" /></filter></defs>
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', filter: 'url(#goo)' }}>
-        <motion.div style={{ position: 'absolute', borderRadius: '50%', width: baseSize, height: baseSize, background: colors.secondary }} animate={{ x: [-35, 35, -35], y: [-20, 25, -20] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} />
-        <motion.div style={{ position: 'absolute', borderRadius: '50%', width: baseSize * 0.85, height: baseSize * 0.85, background: colors.primary }} animate={{ x: [30, -30, 30], y: [20, -20, 20] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }} />
-        <div style={{ position: 'absolute', borderRadius: '50%', width: baseSize * 0.7, height: baseSize * 0.7, background: '#FFF', transform: `scale(${pulseScale})`, transition: 'transform 0.15s' }} />
-      </div>
-    </div>
-  );
-}
+
 
 // ==================== NAVIGATION ====================
-function Navigation({ palette = 'ember' }: { palette?: PaletteKey }) {
+function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const colors = PALETTES[palette];
+
   const navItems = [
     { Icon: HouseIcon, path: '/', label: 'Home' },
     { Icon: BookOpenTextIcon, path: '/library', label: 'Library' },
     { Icon: SettingsIcon, path: '/settings', label: 'Settings' },
   ];
   
-  if (location.pathname === '/player') return null;
+  if (location.pathname === '/player' || location.pathname === '/auth') return null;
   
   return (
     <div style={{
@@ -222,20 +158,74 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
   const hasCalledOnVisit = useRef(false);
   const audio = useAudio();
   
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  
   useEffect(() => {
     if (!hasCalledOnVisit.current) {
       hasCalledOnVisit.current = true;
       onVisit();
     }
   }, [onVisit]);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
   
+  /* SECURITY: Input Validation Constants */
+  const MAX_URL_LENGTH = 2048;
+  const URL_REGEX = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?(\?.*)?$/;
+  const SQL_INJECTION_REGEX = /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER)\b)|(['"])/i;
+
   const handleListen = async () => {
     if (!url.trim()) return;
     setError(null);
     
+    // SECURITY 1: Length Check
+    if (url.length > MAX_URL_LENGTH) {
+        setError('URL is too long. Please use a valid link.');
+        return;
+    }
+
+    // SECURITY 2: Strict URL Format
+    if (!URL_REGEX.test(url)) {
+        setError('Invalid URL format. Please enter a valid http/https link.');
+        return;
+    }
+
+    // SECURITY 3: Basic Injection Defense
+    if (SQL_INJECTION_REGEX.test(url)) {
+        setError('Suspicious input detected.');
+        return;
+    }
+
     try {
       // Start processing - this will extract content and generate audio
-      await audio.processUrl(url);
+      const content = await audio.processUrl(url); // Now returns content
+      
+      // Save to Library (Auto-save)
+      if (content) {
+        try {
+          await addToLibrary({
+            url,
+            title: content.title || 'Untitled',
+            content: content.content,
+            author: content.author || 'Unknown',
+            source: content.source || 'Web',
+            platform: content.platform || 'web',
+            word_count: content.word_count || 0,
+            progress: 0,
+            is_favorite: false,
+            is_archived: false,
+            audio_url: null,
+          });
+          showToast('Saved to Library');
+        } catch (saveError) {
+          console.error('Failed to save to library', saveError);
+          showToast('Could not save to Library (Auth)', 'error');
+        }
+      }
+      
       // Navigate to player once done
       navigate('/player');
     } catch (err) {
@@ -249,6 +239,32 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
     <div
       style={{ minHeight: '100vh', position: 'relative', background: '#000' }}
     >
+      {/* Toast Notification */}
+      {toast && (
+        <motion.div
+           initial={{ opacity: 0, y: -20 }}
+           animate={{ opacity: 1, y: 0 }}
+           exit={{ opacity: 0, y: -20 }}
+           style={{
+             position: 'fixed',
+             top: '100px',
+             left: '50%',
+             transform: 'translateX(-50%)',
+             background: toast.type === 'success' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(248, 113, 113, 0.2)',
+             border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#F87171'}`,
+             color: toast.type === 'success' ? '#4ADE80' : '#F87171',
+             padding: '8px 16px',
+             borderRadius: '20px',
+             fontSize: '13px',
+             fontFamily: 'Funnel Display, sans-serif',
+             zIndex: 100,
+             backdropFilter: 'blur(8px)',
+           }}
+        >
+          {toast.message}
+        </motion.div>
+      )}
+
       {/* DarkVeil Background - Fullscreen */}
       <div style={{
         position: 'fixed',
@@ -509,10 +525,14 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
           {/* Error message */}
           {error && (
             <p style={{ 
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              width: '100%',
               color: '#f87171', 
               fontSize: '14px', 
               textAlign: 'center',
-              marginTop: '-8px',
+              paddingTop: '12px',
             }}>
               {error}
             </p>
@@ -521,13 +541,17 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
           {/* Loading notification */}
           {isLoading && !error && (
             <p style={{ 
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              width: '100%',
               color: 'rgba(255,255,255,0.5)', 
               fontSize: '13px', 
               textAlign: 'center',
-              marginTop: '-4px',
+              paddingTop: '12px',
             }}>
               {audio.isExtracting 
-                ? 'Reading the article...' 
+                ? 'Processing content...' 
                 : 'Preparing audio...'}
             </p>
           )}
@@ -538,7 +562,7 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
 }
 
 // ==================== PLAYER PAGE ====================
-function PlayerPage({ palette }: { palette: PaletteKey }) {
+function PlayerPage() {
   const navigate = useNavigate();
   const audio = useAudio();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -611,9 +635,8 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
         const currentRelTop = activeRect.top - containerRect.top;
         const currentScroll = container.scrollTop;
         
-        // Target: We want the element to be at approx 17% from the top of the container
-        // mimicking Spotify's "current line is easy to read at the top" view
-        const topOffset = container.clientHeight * 0.17; 
+        // Target: Position element at 30% from top (approx 180px down) to avoid sticky header
+        const topOffset = container.clientHeight * 0.30; 
         
         const targetScroll = currentScroll + (currentRelTop - topOffset);
         
@@ -625,7 +648,7 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
     }
   }, [audio.currentChunkIndex]);
 
-  const formatTime = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`;
+
   
   // Handle scrub bar seek
   const handleSeek = (time: number) => {
@@ -1031,110 +1054,189 @@ function PlayerPage({ palette }: { palette: PaletteKey }) {
 }
 
 // Sample library items data
-interface LibraryItem {
-  id: string;
-  title: string;
-  source: string;
-  duration: string;
-  progress: number;
-  type: 'Tweet' | 'Article' | 'Thread';
-  isFavorite: boolean;
-  isOffline: boolean;
-  platform: 'twitter' | 'medium' | 'substack' | 'web';
-}
 
-const LIBRARY_ITEMS: LibraryItem[] = [
-  {
-    id: '1',
-    title: 'The Future of AI in Software Development',
-    source: 'TechCrunch',
-    duration: '8 min',
-    progress: 45,
-    type: 'Article',
-    isFavorite: true,
-    isOffline: false,
-    platform: 'web',
-  },
-  {
-    id: '2',
-    title: 'Thread: Why startups fail in 2024',
-    source: '@pmarca',
-    duration: '5 min',
-    progress: 100,
-    type: 'Thread',
-    isFavorite: false,
-    isOffline: true,
-    platform: 'twitter',
-  },
-  {
-    id: '3',
-    title: 'Building products users love',
-    source: 'Medium',
-    duration: '12 min',
-    progress: 0,
-    type: 'Article',
-    isFavorite: false,
-    isOffline: false,
-    platform: 'medium',
-  },
-  {
-    id: '4',
-    title: 'Hot take: React is overrated',
-    source: '@dan_abramov',
-    duration: '2 min',
-    progress: 80,
-    type: 'Tweet',
-    isFavorite: true,
-    isOffline: true,
-    platform: 'twitter',
-  },
-  {
-    id: '5',
-    title: 'The Anatomy of a Great Product Launch',
-    source: 'Substack',
-    duration: '15 min',
-    progress: 20,
-    type: 'Article',
-    isFavorite: false,
-    isOffline: false,
-    platform: 'substack',
-  },
-];
 
 type FilterType = 'All' | 'Favorites' | 'Saved' | 'Tweets' | 'Articles';
 const FILTER_OPTIONS: FilterType[] = ['All', 'Favorites', 'Saved', 'Tweets', 'Articles'];
 
+// Swipeable Item Component
+const SwipeableItem = ({ 
+  item, 
+  onDelete, 
+  children 
+}: { 
+  item: LibraryItem; 
+  onDelete: (id: string) => void; 
+  children: React.ReactNode 
+}) => {
+  const controls = useAnimation();
+  
+  const handleDragEnd = async (_: any, info: PanInfo) => {
+    const offset = info.offset.x;
+    if (offset < -100) {
+      // Deleting
+      await controls.start({ x: -100 });
+    } else {
+      // Snap back
+      controls.start({ x: 0 });
+    }
+  };
+
+  const handleDelete = () => {
+    // Animate out then delete
+    controls.start({ height: 0, opacity: 0, marginBottom: 0 }).then(() => {
+      onDelete(item.id);
+    });
+  };
+
+  return (
+    <motion.div 
+      style={{ position: 'relative', overflow: 'hidden' }}
+      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Foreground - Content + Delete Button Attachment */}
+      <motion.div
+        drag="x"
+        dragConstraints={{ left: -100, right: 0 }}
+        dragElastic={0.1}
+        onDragEnd={handleDragEnd}
+        animate={controls}
+        style={{
+          background: 'transparent',
+          position: 'relative',
+          zIndex: 1,
+          x: 0,
+          display: 'flex', // Ensure flex layout if needed, though mostly visual
+        }}
+      >
+        <div style={{ flex: 1, width: '100%' }}>
+          {children}
+        </div>
+
+        {/* Delete Button - Attached to the right side */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          right: -100, // Positioned off-screen to the right
+          width: '100px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+           <button
+            onClick={handleDelete}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#F87171',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              // Add a hit area expansion or ensuring z-index if needed
+            }}
+          >
+            <Trash2 size={20} />
+            <span style={{ fontSize: '10px', fontFamily: 'Funnel Display' }}>Delete</span>
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 function LibraryPage({ palette }: { palette: PaletteKey }) {
+  const audio = useAudio();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
-  const [items, setItems] = useState(LIBRARY_ITEMS);
+  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
+  
+  // Load items on mount
+  useEffect(() => {
+    loadItems();
+  }, []);
+  
+  const loadItems = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Check Auth
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setIsGuest(true);
+        setLoading(false);
+        return;
+      }
+      
+      const data = await getLibraryItems();
+      setItems(data);
+    } catch (error) {
+      console.error('Failed to load library', error);
+      setError('Could not connect to Library.');
+    } finally {
+      // If we didn't return early
+      if (items) setLoading(false); 
+      // Note: isGuest return handles loading=false there, but safe to set here too if logic flows
+    }
+  };
   
   // Calculate time left from progress and duration
-  const getTimeLeft = (duration: string, progress: number) => {
-    const mins = parseInt(duration);
+  const getTimeLeft = (wordCount: number, progress: number) => {
+    const mins = Math.ceil((wordCount || 1000) / 200); // 200 wpm estimate
     const left = Math.ceil(mins * (1 - progress / 100));
     return left > 0 ? `${left}m left` : 'Done';
   };
   
   // Toggle favorite
-  const toggleFavorite = (id: string) => {
+  const handleToggleFavorite = async (id: string, currentStatus: boolean) => {
+    // Optimistic update
     setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
+      item.id === id ? { ...item, is_favorite: !currentStatus } : item
     ));
+    
+    try {
+      await toggleFavorite(id, !currentStatus);
+    } catch (error) {
+      console.error('Failed to toggle favorite', error);
+      // Revert on error
+      loadItems();
+    }
+  };
+  
+  // Delete item
+  const handleDelete = async (id: string) => {
+    // Optimistic update
+    setItems(prev => prev.filter(item => item.id !== id));
+    
+    try {
+      await deleteLibraryItem(id);
+    } catch (error) {
+      console.error('Failed to delete item', error);
+      // Revert/Reload handles basic error case
+      loadItems();
+    }
   };
   
   // Filter items by search and active filter
   const filteredItems = items.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.source.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (item.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (item.source || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     if (!matchesSearch) return false;
     
     switch (activeFilter) {
-      case 'Favorites': return item.isFavorite;
-      case 'Saved': return item.isOffline;
-      case 'Tweets': return item.type === 'Tweet';
-      case 'Articles': return item.type === 'Article';
+      case 'Favorites': return item.is_favorite;
+      case 'Saved': return false; // Offline not implemented yet
+      case 'Tweets': return item.platform === 'twitter' || item.platform === 'x';
+      case 'Articles': return item.platform !== 'twitter' && item.platform !== 'x';
       default: return true;
     }
   });
@@ -1143,6 +1245,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
   const getPlatformLogo = (platform: string) => {
     switch (platform) {
       case 'x':
+      case 'twitter':
         return (
           <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
@@ -1170,7 +1273,21 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
         return <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>Logo</span>;
     }
   };
-  
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/library` }
+      });
+      if (error) throw error;
+    } catch (e) {
+      alert((e as Error).message);
+    }
+  };
+
+
+
   return (
     <div 
       style={{ 
@@ -1348,134 +1465,194 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             style={{ 
               flex: 1, 
               overflowY: 'auto',
-              paddingRight: '8px',
+              paddingRight: isGuest ? 0 : '8px',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            {filteredItems.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', padding: '24px 0', fontSize: '14px' }}>
-                No items found
-              </p>
-            ) : (
-              filteredItems.map((item, i) => (
-                <div 
-                  key={item.id} 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'flex-start', 
-                    gap: '12px', 
-                    padding: '14px 0', 
-                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' 
-                  }}
-                >
-                  {/* Source Logo */}
-                  <div style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    borderRadius: '10px', 
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    {getPlatformLogo(item.platform)}
-                  </div>
-                  
-                  {/* Content + Progress Bar */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <div style={{ flex: 1, minWidth: 0, marginRight: '12px' }}>
-                        <p style={{ 
-                          fontSize: '15px', 
-                          fontWeight: 500, 
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis', 
-                          whiteSpace: 'nowrap',
-                          fontFamily: 'Funnel Display, sans-serif',
-                          marginBottom: '2px',
-                        }}>
-                          {item.title}
+            {isGuest ? (
+               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '24px' }}>
+                    <div>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '8px', fontFamily: 'Funnel Display, sans-serif' }}>
+                            Sign In to Sync
+                        </h2>
+                        <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)', maxWidth: '280px', margin: '0 auto', lineHeight: 1.5 }}>
+                            Access your collection across all devices and save new articles forever.
                         </p>
-                        <p style={{ 
-                          fontSize: '12px', 
-                          color: 'rgba(255,255,255,0.4)',
-                          fontFamily: 'Funnel Display, sans-serif',
-                        }}>
-                          {item.source} · {item.type}
-                        </p>
-                      </div>
-                      
-                      {/* Time Left */}
-                      <span style={{ 
-                        fontSize: '12px', 
-                        color: 'rgba(255,255,255,0.5)',
-                        fontFamily: 'Funnel Display, sans-serif',
-                        marginRight: '8px',
-                        flexShrink: 0,
-                      }}>
-                        {item.progress > 0 && item.progress < 100 
-                          ? getTimeLeft(item.duration, item.progress)
-                          : `${item.duration} left`
-                        }
-                      </span>
-                      
-                      {/* Favorite Star */}
-                      <button
-                        onClick={() => toggleFavorite(item.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <svg 
-                          width="20" 
-                          height="20" 
-                          viewBox="0 0 24 24" 
-                          fill={item.isFavorite ? '#F59E0B' : 'none'}
-                          stroke={item.isFavorite ? '#F59E0B' : 'rgba(255,255,255,0.3)'}
-                          strokeWidth="2"
-                          style={{ transition: 'all 0.2s ease' }}
-                        >
-                          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
-                        </svg>
-                      </button>
                     </div>
                     
-                    {/* Progress Bar */}
-                    <div style={{ 
-                      display: 'flex',
-                      gap: '4px',
-                      marginTop: '8px',
-                    }}>
-                      {/* Played portion (orange/gold) */}
-                      <div style={{
-                        flex: item.progress || 1,
-                        height: '3px',
-                        borderRadius: '2px',
-                        background: item.progress > 0 
-                          ? 'linear-gradient(90deg, #F59E0B, #FBBF24)' 
-                          : 'rgba(255,255,255,0.15)',
-                      }} />
-                      {/* Remaining portion (gray) */}
-                      {item.progress > 0 && item.progress < 100 && (
-                        <div style={{
-                          flex: 100 - item.progress,
-                          height: '3px',
-                          borderRadius: '2px',
-                          background: 'rgba(255,255,255,0.15)',
-                        }} />
-                      )}
-                    </div>
-                  </div>
+                    <button
+                        onClick={handleGoogleLogin}
+                        style={{
+                            padding: '16px 28px',
+                            background: 'white',
+                            color: 'black',
+                            borderRadius: '50px',
+                            border: 'none',
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: 'Funnel Display, sans-serif',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                        }}
+                    >
+                       <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                       Sign In with Google
+                    </button>
+                    
+                    <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '8px' }}>
+                        Guest listening history is not saved.
+                    </p>
                 </div>
-              ))
+            ) : loading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                <Loader2 className="spin" size={24} style={{ color: 'rgba(255,255,255,0.3)' }} />
+              </div>
+            ) : error || filteredItems.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', padding: '40px 0', fontSize: '14px' }}>
+                {error ? error : 'No items found'}
+              </div>
+            ) : (
+              <AnimatePresence>
+                {filteredItems.map((item, i) => (
+                  <SwipeableItem key={item.id} item={item} onDelete={handleDelete}>
+                    <div 
+                      onClick={() => {
+                        audio.playContent({
+                          title: item.title || 'Untitled',
+                          content: item.content || '',
+                          source: item.source || 'Library',
+                          platform: item.platform || 'web',
+                          word_count: item.word_count,
+                          author: item.author || undefined,
+                          ai_cleaned: true
+                        });
+                        navigate('/player');
+                      }}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'flex-start', 
+                        gap: '12px', 
+                        padding: '14px 0', 
+                        background: 'transparent', 
+                        borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+                        cursor: 'pointer' 
+                      }}
+                    >
+                      {/* Source Logo */}
+                      <div style={{ 
+                        width: '48px', 
+                        height: '48px', 
+                        borderRadius: '10px', 
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        flexShrink: 0 
+                      }}>
+                        {getPlatformLogo(item.platform || 'web')}
+                      </div>
+                  
+                      {/* Content + Progress Bar */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <div style={{ flex: 1, minWidth: 0, marginRight: '12px' }}>
+                            <p style={{ 
+                              fontSize: '15px', 
+                              fontWeight: 500, 
+                              overflow: 'hidden', 
+                              textOverflow: 'ellipsis', 
+                              whiteSpace: 'nowrap',
+                              fontFamily: 'Funnel Display, sans-serif',
+                              marginBottom: '2px',
+                            }}>
+                              {item.title || 'Untitled'}
+                            </p>
+                            <p style={{ 
+                              fontSize: '12px', 
+                              color: 'rgba(255,255,255,0.4)',
+                              fontFamily: 'Funnel Display, sans-serif',
+                            }}>
+                              {item.source} · {item.platform === 'twitter' || item.platform === 'x' ? 'Tweet' : 'Article'}
+                            </p>
+                          </div>
+                          
+                          {/* Time Left */}
+                          <span style={{ 
+                            fontSize: '12px', 
+                            color: 'rgba(255,255,255,0.5)',
+                            fontFamily: 'Funnel Display, sans-serif',
+                            marginRight: '8px',
+                            flexShrink: 0,
+                          }}>
+                            {item.progress > 0 && item.progress < 100 
+                              ? getTimeLeft(item.word_count, item.progress)
+                              : `${Math.ceil((item.word_count || 1000) / 200)} min`
+                            }
+                          </span>
+                          
+                          {/* Favorite Star */}
+                          <button
+                            onClick={() => handleToggleFavorite(item.id, item.is_favorite)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <svg 
+                              width="20" 
+                              height="20" 
+                              viewBox="0 0 24 24" 
+                              fill={item.is_favorite ? '#F59E0B' : 'none'}
+                              stroke={item.is_favorite ? '#F59E0B' : 'rgba(255,255,255,0.3)'}
+                              strokeWidth="2"
+                              style={{ transition: 'all 0.2s ease' }}
+                            >
+                              <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+                            </svg>
+                          </button>
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        <div style={{ 
+                          display: 'flex',
+                          gap: '4px',
+                          marginTop: '8px',
+                        }}>
+                          {/* Played portion */}
+                          <div style={{
+                            flex: item.progress || 1,
+                            height: '3px',
+                            borderRadius: '2px',
+                            background: item.progress > 0 
+                              ? 'linear-gradient(90deg, #F59E0B, #FBBF24)' 
+                              : 'rgba(255,255,255,0.15)',
+                          }} />
+                          {/* Remaining portion */}
+                          {item.progress > 0 && item.progress < 100 && (
+                            <div style={{
+                              flex: 100 - item.progress,
+                              height: '3px',
+                              borderRadius: '2px',
+                              background: 'rgba(255,255,255,0.15)',
+                            }} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </SwipeableItem>
+                ))}
+              </AnimatePresence>
             )}
           </div>
         </div>
@@ -1487,14 +1664,61 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
 // ==================== SETTINGS PAGE ====================
 function SettingsPage({ palette }: { palette: PaletteKey }) {
   const colors = PALETTES[palette];
-  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
-  const [autoArchive, setAutoArchive] = useState(false);
-  const [hapticsEnabled, setHapticsEnabled] = useState(true);
+  const audio = useAudio(); // Connect to real audio context
+  
+  // Persistent State
+  const [autoArchive, setAutoArchive] = useState(() => {
+    return localStorage.getItem('audiotext_auto_archive') === 'true';
+  });
+  const [hapticsEnabled, setHapticsEnabled] = useState(() => {
+    const stored = localStorage.getItem('audiotext_haptics');
+    return stored === null ? true : stored === 'true'; // Default true
+  });
   const [showCacheCleared, setShowCacheCleared] = useState(false);
   
+  // Sync Audio Speed changes to context AND storage
+  const handleSpeedChange = (speed: number) => {
+    const rounded = Math.round(speed * 100) / 100;
+    audio.setSpeed(rounded);
+    localStorage.setItem('audiotext_playback_speed', String(rounded));
+  };
+  
+  // Persist other settings
+  const toggleAutoArchive = () => {
+    const newValue = !autoArchive;
+    setAutoArchive(newValue);
+    localStorage.setItem('audiotext_auto_archive', String(newValue));
+  };
+
+  const toggleHaptics = () => {
+    const newValue = !hapticsEnabled;
+    setHapticsEnabled(newValue);
+    localStorage.setItem('audiotext_haptics', String(newValue));
+    if (newValue && navigator.vibrate) navigator.vibrate(50);
+  };
+  
   const handleClearCache = () => {
+    // Clear application specific storage
+    // Keep settings, clear data cache if we had one (e.g. library items if stored locally)
+    // For now, we mainly use Supabase, so this is mostly a visual feedback or clearing non-essential local keys
+    // Let's pretend we clear "recent_searches" or similar if we had them.
+    // Real implementation:
+    localStorage.removeItem('audiotext_native_content_cache'); // Example
+    
     setShowCacheCleared(true);
     setTimeout(() => setShowCacheCleared(false), 2000);
+    if (hapticsEnabled && navigator.vibrate) navigator.vibrate([50, 50, 50]);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Clear local settings if desired, or keep them. 
+      // We'll reload to ensure clean state and show /auth or home as guest.
+      window.location.href = '/auth'; 
+    } catch (e) {
+      console.error('Sign out error', e);
+    }
   };
   
   // Toggle Switch Component
@@ -1648,11 +1872,11 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
                 </div>
                 
                 <ScrubBar
-                  value={playbackSpeed}
+                  value={audio.playbackSpeed}
                   min={0.5}
                   max={2.5}
                   step={0.05}
-                  onChange={(val) => setPlaybackSpeed(Math.round(val * 100) / 100)}
+                  onChange={handleSpeedChange}
                   formatValue={(v) => `${v.toFixed(2)}x`}
                   primaryColor={colors.primary}
                   secondaryColor={colors.secondary}
@@ -1672,7 +1896,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
                   <span style={{ fontSize: '15px', display: 'block', fontFamily: 'Funnel Display, sans-serif' }}>Auto-Archive</span>
                   <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Delete after 30 days</span>
                 </div>
-                <Toggle enabled={autoArchive} onToggle={() => setAutoArchive(!autoArchive)} />
+                <Toggle enabled={autoArchive} onToggle={toggleAutoArchive} />
               </div>
               
               {/* Clear Cache */}
@@ -1698,7 +1922,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
           </div>
           
           {/* System Group */}
-          <div>
+          <div style={{ marginBottom: '20px' }}>
             <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', paddingLeft: '4px' }}>System</p>
             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '14px', overflow: 'hidden' }}>
               {/* Haptics */}
@@ -1708,9 +1932,32 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
                   <span style={{ fontSize: '15px', display: 'block', fontFamily: 'Funnel Display, sans-serif' }}>Haptics</span>
                   <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>Vibration feedback</span>
                 </div>
-                <Toggle enabled={hapticsEnabled} onToggle={() => setHapticsEnabled(!hapticsEnabled)} />
+                <Toggle enabled={hapticsEnabled} onToggle={toggleHaptics} />
               </div>
             </div>
+            </div>
+
+          {/* Account Group */}
+          <div>
+             <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px', paddingLeft: '4px' }}>Account</p>
+             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '14px', overflow: 'hidden' }}>
+                <button
+                    onClick={handleSignOut}
+                    style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '16px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                    }}
+                >
+                    <LogOut size={18} style={{ color: '#F87171', marginRight: '12px' }} />
+                    <span style={{ flex: 1, fontSize: '15px', fontFamily: 'Funnel Display, sans-serif', color: '#F87171', fontWeight: 500 }}>Sign Out</span>
+                </button>
+             </div>
           </div>
         </div>
       </div>
@@ -1932,6 +2179,11 @@ function AppLayout() {
   const [palette, setPalette] = useState<PaletteKey>('ember');
   const [isTransitioning, setIsTransitioning] = useState(false);
   
+  // Ensure we have an anonymous session on mount
+  useEffect(() => {
+    ensureAuth().catch(e => console.error('Auth error:', e));
+  }, []);
+  
   const handleHomeVisit = () => {
     if (isTransitioning) return;
     setIsTransitioning(true);
@@ -1949,11 +2201,12 @@ function AppLayout() {
     <div style={{ background: '#000', minHeight: '100vh' }}>
       <Routes location={location}>
         <Route path="/" element={<HomePage palette={palette} onVisit={handleHomeVisit} />} />
-        <Route path="/player" element={<PlayerPage palette={palette} />} />
+        <Route path="/player" element={<PlayerPage />} />
+        <Route path="/auth" element={<AuthPage palette={palette} />} />
         <Route path="/library" element={<LibraryPage palette={palette} />} />
         <Route path="/settings" element={<SettingsPage palette={palette} />} />
       </Routes>
-      <Navigation palette={palette} />
+      <Navigation />
     </div>
   );
   
