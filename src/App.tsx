@@ -237,7 +237,7 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
   
   return (
     <div
-      style={{ height: '100dvh', position: 'relative', background: '#000', overflow: 'hidden' }}
+      style={{ height: '100%', position: 'relative', background: '#000', overflow: 'hidden' }}
     >
       {/* Toast Notification */}
       {toast && (
@@ -687,7 +687,7 @@ function PlayerPage() {
   return (
     <div 
       style={{ 
-        height: '100vh', 
+        height: '100%', 
         position: 'relative', 
         background: '#000',
         display: 'flex',
@@ -1293,7 +1293,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
   return (
     <div 
       style={{ 
-        height: '100dvh', 
+        height: '100%', 
         position: 'relative', 
         background: '#000',
         display: 'flex',
@@ -1754,7 +1754,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
   return (
     <div 
       style={{ 
-        height: '100vh', 
+        height: '100%', 
         position: 'relative', 
         background: '#000',
         display: 'flex',
