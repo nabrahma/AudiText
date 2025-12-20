@@ -77,8 +77,10 @@ export function AuthPage({ palette }: { palette: PaletteKey }) {
   }
 
   const handleGuest = () => {
-    // Navigate home as guest
-    navigate('/')
+    // Set 7-day expiry for guest mode
+    const expiry = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    localStorage.setItem('audiotext_guest_expiry', expiry.toString());
+    navigate('/');
   }
 
   return (

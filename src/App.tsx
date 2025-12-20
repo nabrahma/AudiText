@@ -9,7 +9,7 @@ import { Orb } from '@/components/Orb';
 import { ScrubBar } from '@/components/ScrubBar';
 import ShimmeringText from '@/components/ShimmeringText';
 import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
-import { addToLibrary, deleteLibraryItem, ensureAuth, getLibraryItems, toggleFavorite, type LibraryItem } from '@/lib/api';
+import { addToLibrary, deleteLibraryItem, getLibraryItems, toggleFavorite, type LibraryItem } from '@/lib/api';
 import { AudioProvider, useAudio } from '@/lib/AudioContext';
 import { AnimatePresence, motion, useAnimation, type PanInfo } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2, LogOut, Pause, Play, Share2, SkipBack, SkipForward, Sparkles, Trash2 } from 'lucide-react';
@@ -2182,15 +2182,58 @@ function AppLayout() {
   // Ensure we have an anonymous session on mount
   // Ensure we have an anonymous session on mount & handle OAuth response
   useEffect(() => {
-    // Check initial auth state
-    ensureAuth().catch(e => console.error('Auth error:', e));
+    // Check initial auth state & redirect logic
+    const checkAuthStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Check Guest Mode Expiry
+      const guestExpiry = localStorage.getItem('audiotext_guest_expiry');
+      let isGuestValid = false;
+      
+      if (guestExpiry) {
+        if (Date.now() < parseInt(guestExpiry)) {
+          isGuestValid = true;
+        } else {
+          // Expired
+          localStorage.removeItem('audiotext_guest_expiry');
+        }
+      }
+
+      // Logic:
+      // 1. If NOT authenticated AND NOT valid guest -> Redirect to /auth
+      // 2. If trying to access /auth BUT IS authenticated/guest -> Redirect to /
+      
+      const isAuthPage = location.pathname === '/auth';
+      const hasAccess = !!session || isGuestValid;
+
+      if (!hasAccess && !isAuthPage) {
+        // New user/expired guest -> GO TO LOGIN
+        navigate('/auth', { replace: true });
+      } else if (hasAccess && isAuthPage) {
+        // Already logged in -> GO TO APP
+        navigate('/', { replace: true });
+      }
+    };
+
+    checkAuthStatus();
 
     // Listen for auth changes (like OAuth redirect completion)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // If we just signed in and there's a hash in the URL, clear it
-      if (event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
-        // Keep the pathname (e.g. /library) but remove the hash
-        navigate(location.pathname, { replace: true });
+      if (event === 'SIGNED_IN') {
+         if (window.location.hash.includes('access_token')) {
+            navigate(location.pathname, { replace: true });
+         }
+         // Also ensure we leave auth page if we just signed in
+         if (location.pathname === '/auth') {
+            navigate('/', { replace: true });
+         }
+      }
+      
+      // Handle explicit sign out
+      if (event === 'SIGNED_OUT') {
+         localStorage.removeItem('audiotext_guest_expiry'); // Clear guest if signing out
+         navigate('/auth', { replace: true });
       }
     });
 
