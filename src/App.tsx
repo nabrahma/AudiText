@@ -15,6 +15,7 @@ import { AnimatePresence, motion, useAnimation, type PanInfo } from 'framer-moti
 import { ChevronLeft, ChevronRight, Loader2, LogOut, Pause, Play, Share2, SkipBack, SkipForward, Sparkles, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { PullToRefresh } from './components/PullToRefresh';
 import './index.css';
 
 import { supabase } from '@/lib/supabase';
@@ -167,6 +168,8 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
     }
   }, [onVisit]);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -297,18 +300,29 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
         pointerEvents: 'none',
       }} />
       
-      <div style={{ 
-        position: 'relative', 
-        zIndex: 2, 
-        maxWidth: '390px', 
-        margin: '0 auto', 
-        padding: '0 24px', 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column',
-        overflowY: 'auto',  /* Allow internal scroll if absolutely necessary */
-        overflowX: 'hidden',
-      }}>
+      <PullToRefresh 
+        scrollableRef={scrollRef}
+        style={{ 
+          position: 'relative', 
+          zIndex: 2, 
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+      <div 
+        ref={scrollRef}
+        style={{ 
+          maxWidth: '390px', 
+          margin: '0 auto', 
+          padding: '0 24px', 
+          height: '100%', 
+          display: 'flex', 
+          flexDirection: 'column',
+          overflowY: 'auto',  /* Allow internal scroll if absolutely necessary */
+          overflowX: 'hidden',
+          width: '100%', // Ensure width prop
+        }}>
         
         {/* Version - Moved up, Genos font, Italic */}
         <div style={{ paddingTop: '24px', textAlign: 'center' }}>
@@ -559,6 +573,7 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
           )}
         </motion.div>
       </div>
+      </PullToRefresh>
     </div>
   );
 }
@@ -1156,9 +1171,6 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('All');
-  const [pullStartY, setPullStartY] = useState(0);
-  const [pullMoveY, setPullMoveY] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1338,31 +1350,9 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
       }} />
       
       {/* Content Container */}
-      <div 
-        onTouchStart={(e) => {
-          // Only enable pull if list is at top or doesn't exist
-          if (!scrollRef.current || scrollRef.current.scrollTop <= 0) {
-            setPullStartY(e.touches[0].clientY);
-          }
-        }}
-        onTouchMove={(e) => {
-          if (pullStartY > 0 && (!scrollRef.current || scrollRef.current.scrollTop <= 0)) {
-            const touchY = e.touches[0].clientY;
-            const diff = touchY - pullStartY;
-            // Only allow pulling down
-            if (diff > 0) {
-              setPullMoveY(diff);
-            }
-          }
-        }}
-        onTouchEnd={() => {
-          if (pullMoveY > 120) { 
-            setIsRefreshing(true);
-            window.location.reload();
-          }
-          setPullStartY(0);
-          setPullMoveY(0);
-        }}
+      {/* Content Container */}
+      <PullToRefresh 
+        scrollableRef={scrollRef}
         style={{ 
           position: 'relative', 
           zIndex: 1, 
@@ -1373,8 +1363,6 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          transform: pullMoveY > 0 ? `translateY(${Math.min(pullMoveY * 0.4, 120)}px)` : 'none',
-          transition: pullMoveY === 0 ? 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)' : 'none', // Smooth snap back
         }}
       >
         
@@ -1430,21 +1418,6 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             overflow: 'hidden',
           }}
         >
-          {/* Refresh Loading Overlay */}
-          {isRefreshing && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 20,
-              backdropFilter: 'blur(4px)',
-            }}>
-              <Loader2 className="animate-spin" size={32} color="white" />
-            </div>
-          )}
           {/* Search Input */}
           <div 
             style={{ 
@@ -1724,6 +1697,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
     return stored === null ? true : stored === 'true'; // Default true
   });
   const [showCacheCleared, setShowCacheCleared] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   
   // Sync Audio Speed changes to context AND storage
   const handleSpeedChange = (speed: number) => {
@@ -1843,18 +1817,21 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
       }} />
       
       {/* Content Container */}
-      <div style={{ 
-        position: 'relative', 
-        zIndex: 1, 
-        width: '100%',
-        maxWidth: '390px', 
-        margin: '0 auto', 
-        padding: '0 24px', 
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        boxSizing: 'border-box',
-      }}>
+      <PullToRefresh
+        scrollableRef={scrollRef}
+        style={{ 
+          position: 'relative', 
+          zIndex: 1, 
+          width: '100%',
+          maxWidth: '390px', 
+          margin: '0 auto', 
+          padding: '0 24px', 
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+        }}
+      >
         
         {/* Version - Same as Home */}
         <div style={{ paddingTop: '24px', textAlign: 'center' }}>
@@ -1894,6 +1871,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
         
         {/* Content Box - Scrollable without visible scrollbar */}
         <div 
+          ref={scrollRef}
           className="hide-scrollbar"
           style={{ 
             flex: 1,
