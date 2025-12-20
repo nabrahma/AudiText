@@ -1341,7 +1341,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
         maxWidth: '390px', 
         margin: '0 auto', 
         padding: '0 24px', 
-        minHeight: '100vh',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -1754,7 +1754,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
   return (
     <div 
       style={{ 
-        height: '100%', 
+        height: '100dvh', 
         position: 'relative', 
         background: '#000',
         display: 'flex',
@@ -1802,7 +1802,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
         maxWidth: '390px', 
         margin: '0 auto', 
         padding: '0 24px', 
-        minHeight: '100vh',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
