@@ -1337,11 +1337,14 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
       <div style={{ 
         position: 'relative', 
         zIndex: 1, 
+      <div style={{ 
+        position: 'relative', 
+        zIndex: 1, 
         width: '100%',
         maxWidth: '390px', 
         margin: '0 auto', 
-        padding: '0 24px 100px 24px', /* Added bottom padding for nav gap */
-        height: '100%', /* Fix: strict height to respect parent */
+        padding: '0 24px', 
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
       }}>
@@ -1392,7 +1395,8 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: '0', /* Managed by parent padding */
+            marginBottom: 'calc(90px + env(safe-area-inset-bottom))', /* Explicit gap for Nav */
+            minHeight: 0, /* Allow shrinking */
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -1798,10 +1802,13 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
       <div style={{ 
         position: 'relative', 
         zIndex: 1, 
+      <div style={{ 
+        position: 'relative', 
+        zIndex: 1, 
         width: '100%',
         maxWidth: '390px', 
         margin: '0 auto', 
-        padding: '0 20px 100px 20px', /* Added bottom padding for nav gap */
+        padding: '0 20px', 
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -1854,7 +1861,8 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: '0',
+            marginBottom: 'calc(90px + env(safe-area-inset-bottom))',
+            minHeight: 0, /* Allow shrinking */
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
