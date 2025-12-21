@@ -8,7 +8,7 @@ interface PullToRefreshProps {
    * If provided, pull-to-refresh will only trigger when this element is at scrollTop 0.
    * If not provided, it assumes the content is always at the top (non-scrollable).
    */
-  scrollableRef?: React.RefObject<HTMLElement>;
+  scrollableRef?: React.RefObject<HTMLElement | null>;
   onRefresh?: () => void;
   className?: string;
   style?: React.CSSProperties;
