@@ -788,44 +788,7 @@ function PlayerPage() {
           </p>
           
           {/* Empty spacer for alignment */}
-          <button 
-            onClick={async () => {
-              const sourceUrl = audio.url;
-              if (!sourceUrl) return;
-              
-              const deepLink = `${window.location.origin}/?share=${encodeURIComponent(sourceUrl)}`;
-              
-              if (navigator.share) {
-                try {
-                  await navigator.share({
-                    title: audio.content?.title || 'Listen on AudiText',
-                    text: 'Check out this audio article:',
-                    url: deepLink,
-                  });
-                } catch (err) {
-                  // Share cancelled
-                }
-              } else {
-                navigator.clipboard.writeText(deepLink);
-                alert('Link copied to clipboard!');
-              }
-            }}
-            style={{ 
-              padding: '12px', 
-              background: 'rgba(255,255,255,0.05)', 
-              border: '1px solid rgba(255,255,255,0.1)', 
-              borderRadius: '50%', 
-              cursor: 'pointer', 
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '44px',
-              height: '44px',
-            }}
-          >
-            <Share2 size={20} />
-          </button>
+          <div style={{ width: '44px' }} />
         </div>
         
         {/* Title Section - Flexible height but usually fixed */}
@@ -921,6 +884,27 @@ function PlayerPage() {
         }}>
           {/* Share Button */}
           <button 
+            onClick={async () => {
+              const sourceUrl = audio.url;
+              if (!sourceUrl) return;
+              
+              const deepLink = `${window.location.origin}/?share=${encodeURIComponent(sourceUrl)}`;
+              
+              if (navigator.share) {
+                try {
+                  await navigator.share({
+                    title: audio.content?.title || 'Listen on AudiText',
+                    text: 'Check out this audio article:',
+                    url: deepLink,
+                  });
+                } catch (err) {
+                  // Share cancelled
+                }
+              } else {
+                navigator.clipboard.writeText(deepLink);
+                alert('Link copied to clipboard!');
+              }
+            }}
             style={{ 
               width: '44px',
               height: '44px',
