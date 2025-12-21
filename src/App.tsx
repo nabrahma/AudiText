@@ -1578,7 +1578,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
                           word_count: item.word_count,
                           author: item.author || undefined,
                           ai_cleaned: true
-                        }, 1, item.id); // Pass item.id for progress saving
+                        }, 1, item.id, item.url); // Pass item.id and item.url for progress & sharing
                         navigate('/player');
                       }}
                       style={{ 

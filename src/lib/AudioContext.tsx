@@ -32,7 +32,7 @@ interface AudioState {
 
 interface AudioContextType extends AudioState {
   processUrl: (url: string) => Promise<ExtractedContent>
-  playContent: (content: ExtractedContent, speed?: number, itemId?: string) => void
+  playContent: (content: ExtractedContent, speed?: number, itemId?: string, url?: string) => void
   play: () => void
   pause: () => void
   togglePlay: () => void
@@ -271,7 +271,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     if (error) console.error('Failed to save progress:', error)
   }
 
-  const playContent = (content: ExtractedContent, speed: number = 1, itemId?: string) => {
+  const playContent = (content: ExtractedContent, speed: number = 1, itemId?: string, url?: string) => {
     // 1. Clean Text
     const chunks = prepareChunks(content)
     
@@ -290,6 +290,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       playbackSpeed: speed,
       nativeChunks: chunks,
       itemId, // Store the ID for saving progress
+      url: url || null // Store the URL if provided
     }))
     
     // Start Speaking
