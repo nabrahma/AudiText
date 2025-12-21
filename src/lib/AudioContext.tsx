@@ -1,4 +1,4 @@
-```typescript
+
 // Audio Player Context
 // Manages global audio state using Browser Native TTS (SpeechSynthesis)
 // Features: Chunking for Seek/Speed support, Auto-cleaning of text
@@ -27,6 +27,7 @@ interface AudioState {
   // Loading states
   isExtracting: boolean
   error: string | null
+  itemId?: string // For syncing progress to DB
 }
 
 interface AudioContextType extends AudioState {
@@ -51,6 +52,7 @@ const initialState: AudioState = {
   currentChunkIndex: 0,
   isExtracting: false,
   error: null,
+  itemId: undefined
 }
 
 const STORAGE_KEY = 'audiotext_player_state'
@@ -278,7 +280,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     // Let's rely on chunk count for simple progress.
     const duration = chunks.length * 5 // Arbitrary 5s per chunk for UI slider
 
-    setState({
+    setState(_ => ({
+      ...initialState, // Reset other fields
+      content,
       isPlaying: true,
       currentChunkIndex: 0,
       currentTime: 0,
@@ -286,7 +290,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       playbackSpeed: speed,
       nativeChunks: chunks,
       itemId, // Store the ID for saving progress
-    })
+    }))
     
     // Start Speaking
     speakChunk(chunks, 0, speed)
@@ -300,7 +304,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       if (!prev.isPlaying) return prev
       const nextIdx = prev.currentChunkIndex + 1
       
-      const percent = Math.round((nextIdx / prev.nativeChunks.length) * 100)
+
       
       if (nextIdx < prev.nativeChunks.length) {
         // Continue playing
