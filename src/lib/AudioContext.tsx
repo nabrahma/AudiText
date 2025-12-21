@@ -170,6 +170,21 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Chrome/Android TTS Timeout Fix: Periodically resume to keep engine alive
+  useEffect(() => {
+    if (!state.isPlaying) return
+
+    const resumeInterval = setInterval(() => {
+      // Only resume if we are supposed to be playing but it's technically "paused" 
+      // or just to keep the process active.
+      if (window.speechSynthesis.speaking || window.speechSynthesis.paused) {
+        window.speechSynthesis.resume()
+      }
+    }, 10000) // 10 seconds
+
+    return () => clearInterval(resumeInterval)
+  }, [state.isPlaying])
+
   const processUrl = async (url: string) => {
     window.speechSynthesis.cancel()
     if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
