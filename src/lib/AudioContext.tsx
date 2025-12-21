@@ -1,3 +1,4 @@
+```typescript
 // Audio Player Context
 // Manages global audio state using Browser Native TTS (SpeechSynthesis)
 // Features: Chunking for Seek/Speed support, Auto-cleaning of text
@@ -6,6 +7,7 @@ import type { ReactNode } from 'react'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import type { ExtractedContent } from './api'
 import { processUrl as processUrlApi } from './api'
+import { supabase } from './supabase'
 
 interface AudioState {
   // Content
@@ -28,8 +30,8 @@ interface AudioState {
 }
 
 interface AudioContextType extends AudioState {
-  processUrl: (url: string) => Promise<ExtractedContent | void>
-  playContent: (content: ExtractedContent) => void
+  processUrl: (url: string) => Promise<ExtractedContent>
+  playContent: (content: ExtractedContent, speed?: number, itemId?: string) => void
   play: () => void
   pause: () => void
   togglePlay: () => void
@@ -220,34 +222,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const playContent = (content: ExtractedContent) => {
-    window.speechSynthesis.cancel()
-    if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
 
-    // Reset state but keep speed
-    setState(prev => ({
-      ...initialState,
-      content: content,
-      playbackSpeed: prev.playbackSpeed,
-      isExtracting: false,
-    }))
-
-    // Prepare chunks
-    const chunks = prepareChunks(content)
-    const totalDuration = chunks.reduce((acc, chunk) => acc + (chunk.split(' ').length / 3), 0)
-
-    // Update state and play
-    setState(prev => ({
-      ...prev,
-      nativeChunks: chunks,
-      currentChunkIndex: 0,
-      duration: totalDuration || 60,
-      isPlaying: true
-    }))
-
-    // Start speaking immediately
-    speakChunk(chunks, 0, state.playbackSpeed)
-  }
 
   const speakChunk = (chunks: string[], index: number, speed: number) => {
     if (index >= chunks.length) {
@@ -280,16 +255,69 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     startNativeTimer()
   }
 
+
+
+  const saveProgress = async (id: string, progress: number) => {
+    // Clamp to 0-100
+    const safeProgress = Math.min(100, Math.max(0, Math.round(progress)))
+    
+    const { error } = await supabase
+      .from('library_items')
+      .update({ progress: safeProgress })
+      .eq('id', id)
+      
+    if (error) console.error('Failed to save progress:', error)
+  }
+
+  const playContent = (content: ExtractedContent, speed: number = 1, itemId?: string) => {
+    // 1. Clean Text
+    const chunks = prepareChunks(content)
+    
+    // 2. Estimate Duration (roughly 150 words per minute -> 2.5 words per sec)
+    // Average sentence/chunk is ~10-15 words?
+    // Let's rely on chunk count for simple progress.
+    const duration = chunks.length * 5 // Arbitrary 5s per chunk for UI slider
+
+    setState({
+      isPlaying: true,
+      currentChunkIndex: 0,
+      currentTime: 0,
+      duration,
+      playbackSpeed: speed,
+      nativeChunks: chunks,
+      itemId, // Store the ID for saving progress
+    })
+    
+    // Start Speaking
+    speakChunk(chunks, 0, speed)
+  }
+  
+  // ... (speakChunk remains mostly same, but we might want to save periodically? 
+  // For now, let's save on Pause and End for efficiency)
+
   const playNext = () => {
     setState(prev => {
       if (!prev.isPlaying) return prev
       const nextIdx = prev.currentChunkIndex + 1
+      
+      const percent = Math.round((nextIdx / prev.nativeChunks.length) * 100)
+      
       if (nextIdx < prev.nativeChunks.length) {
-        // We use a timeout to prevent stack overflow/recursion issues
+        // Continue playing
         setTimeout(() => speakChunk(prev.nativeChunks, nextIdx, prev.playbackSpeed), 0)
+        
+        // Optional: Save progress every 10% or so? 
+        // For simplicity, we save on Pause.
         return { ...prev, currentChunkIndex: nextIdx }
       } else {
+        // Finished!
         if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
+        
+        // SAVE PROGRESS 100%
+        if (prev.itemId) {
+            saveProgress(prev.itemId, 100)
+        }
+        
         return { ...prev, isPlaying: false, currentChunkIndex: 0, currentTime: 0 }
       }
     })
@@ -297,7 +325,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const play = () => {
     setState(p => ({ ...p, isPlaying: true }))
-    // Resume or Restart current chunk
     if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume()
     } else {
@@ -306,7 +333,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   }
 
   const pause = () => {
-    setState(p => ({ ...p, isPlaying: false }))
+    setState(p => {
+        // Save progress on pause
+        if (p.itemId && p.nativeChunks.length > 0) {
+            const percent = (p.currentChunkIndex / p.nativeChunks.length) * 100
+            saveProgress(p.itemId, percent)
+        }
+        return { ...p, isPlaying: false }
+    })
     if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
     window.speechSynthesis.pause() 
   }

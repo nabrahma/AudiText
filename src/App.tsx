@@ -1546,12 +1546,12 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
                         audio.playContent({
                           title: item.title || 'Untitled',
                           content: item.content || '',
-                          source: item.source || 'Library',
+                          source: item.source,
                           platform: item.platform || 'web',
                           word_count: item.word_count,
                           author: item.author || undefined,
                           ai_cleaned: true
-                        });
+                        }, 1, item.id); // Pass item.id for progress saving
                         navigate('/player');
                       }}
                       style={{ 
