@@ -1619,7 +1619,10 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
                           
                           {/* Favorite Star */}
                           <button
-                            onClick={() => handleToggleFavorite(item.id, item.is_favorite)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleFavorite(item.id, item.is_favorite);
+                            }}
                             style={{
                               background: 'none',
                               border: 'none',
