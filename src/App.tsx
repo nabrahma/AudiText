@@ -889,7 +889,8 @@ function PlayerPage() {
               if (!sourceUrl) return;
               
               const deepLink = `${window.location.origin}/?share=${encodeURIComponent(sourceUrl)}`;
-              
+              console.log('Sharing link:', deepLink); // Debug log
+
               if (navigator.share) {
                 try {
                   await navigator.share({
@@ -898,11 +899,16 @@ function PlayerPage() {
                     url: deepLink,
                   });
                 } catch (err) {
-                  // Share cancelled
+                  console.log('Share cancelled', err);
                 }
               } else {
-                navigator.clipboard.writeText(deepLink);
-                alert('Link copied to clipboard!');
+                try {
+                  await navigator.clipboard.writeText(deepLink);
+                  alert('Link copied to clipboard!');
+                } catch (err) {
+                  console.error('Clipboard failed', err);
+                  alert('Failed to copy link. Please manually copy URL.');
+                }
               }
             }}
             style={{ 
@@ -2225,30 +2231,31 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 
 
 // ==================== APP ====================
-function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const audio = useAudio();
   const [palette, setPalette] = useState<PaletteKey>('ember');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const processedRef = useRef<string | null>(null);
 
   // Deep Link Handler (Share Feature)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const shareUrl = params.get('share');
 
-    if (shareUrl) {
+    // Prevent loop if we already processed this URL
+    if (shareUrl && shareUrl !== processedRef.current) {
       try {
         const decodedUrl = decodeURIComponent(shareUrl);
+        processedRef.current = shareUrl; // Mark as processed
         console.log('Deep link detected:', decodedUrl);
         
-        // Remove the query param immediately to prevent re-triggering
-        // We replace history but keep same path, just stripped search
-        // navigate(location.pathname, { replace: true }); 
-        // actually, let's keep it visible or clear it? Clearing it might be cleaner.
-        // But if we clear it, 'location.search' changes, and if we depended on it, this effect runs again with empty.
-        // Which is fine, shareUrl will be null.
-        
+        // Clean URL without triggering re-render loop if possible, 
+        // or just accept that we won't process it again due to ref.
+        // We'll use history.replaceState to verify strictly.
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({path: newUrl}, '', newUrl);
+
         // Start processing
         audio.processUrl(decodedUrl)
           .then(() => {
@@ -2256,9 +2263,6 @@ function AppLayout() {
           })
           .catch(err => {
              console.error('Failed to process deep link', err);
-             // Maybe show toast? 
-             // We can't easily show toast here without a toast provider or prop.
-             // For now, console error is expected behavior for "silent fail" or we can navigate to home with error.
              navigate('/');
           });
           
