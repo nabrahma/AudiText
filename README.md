@@ -147,6 +147,24 @@ We welcome contributions from the community! Whether it's enhancing the AI parsi
 
 ---
 
+## 🔧 Configuration
+
+To run the backend logic (Audio Generation & Content Extraction), you need to configure the following secrets in your Supabase project:
+
+### Edge Function Secrets
+Set these via Supabase CLI (`supabase secrets set_env_file supabase/functions/.env`) or the **Supabase Dashboard > Settings > Edge Functions**.
+
+| Variable Name | Service | Purpose |
+|---------------|---------|---------|
+| `JINA_API_KEY` | **Jina.ai** | Extracts clean markdown from any URL. |
+| `ELEVENLABS_API_KEY` | **ElevenLabs** | Generates high-fidelity audio from text. |
+| `OPENROUTER_API_KEY` | **OpenRouter** | (Recommended) AI cleaning & semantic formatting. |
+| `GEMINI_API_KEY` | **Google Gemini** | (Fallback) AI cleaning if OpenRouter is unavailable. |
+
+> **Note:** These keys are never exposed to the frontend client. They remain secure on the server side.
+
+---
+
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
