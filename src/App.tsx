@@ -1678,7 +1678,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             )}
           </div>
         </div>
-      </div>
+      </PullToRefresh>
     </div>
   );
 }
@@ -1987,7 +1987,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
              </div>
           </div>
         </div>
-      </div>
+      </PullToRefresh>
     </div>
   );
 }
