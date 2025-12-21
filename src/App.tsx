@@ -788,7 +788,44 @@ function PlayerPage() {
           </p>
           
           {/* Empty spacer for alignment */}
-          <div style={{ width: '44px' }} />
+          <button 
+            onClick={async () => {
+              const sourceUrl = audio.url;
+              if (!sourceUrl) return;
+              
+              const deepLink = `${window.location.origin}/?share=${encodeURIComponent(sourceUrl)}`;
+              
+              if (navigator.share) {
+                try {
+                  await navigator.share({
+                    title: audio.content?.title || 'Listen on AudiText',
+                    text: 'Check out this audio article:',
+                    url: deepLink,
+                  });
+                } catch (err) {
+                  // Share cancelled
+                }
+              } else {
+                navigator.clipboard.writeText(deepLink);
+                alert('Link copied to clipboard!');
+              }
+            }}
+            style={{ 
+              padding: '12px', 
+              background: 'rgba(255,255,255,0.05)', 
+              border: '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: '50%', 
+              cursor: 'pointer', 
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '44px',
+              height: '44px',
+            }}
+          >
+            <Share2 size={20} />
+          </button>
         </div>
         
         {/* Title Section - Flexible height but usually fixed */}
@@ -2207,8 +2244,45 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const audio = useAudio();
   const [palette, setPalette] = useState<PaletteKey>('ember');
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Deep Link Handler (Share Feature)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const shareUrl = params.get('share');
+
+    if (shareUrl) {
+      try {
+        const decodedUrl = decodeURIComponent(shareUrl);
+        console.log('Deep link detected:', decodedUrl);
+        
+        // Remove the query param immediately to prevent re-triggering
+        // We replace history but keep same path, just stripped search
+        // navigate(location.pathname, { replace: true }); 
+        // actually, let's keep it visible or clear it? Clearing it might be cleaner.
+        // But if we clear it, 'location.search' changes, and if we depended on it, this effect runs again with empty.
+        // Which is fine, shareUrl will be null.
+        
+        // Start processing
+        audio.processUrl(decodedUrl)
+          .then(() => {
+             navigate('/player');
+          })
+          .catch(err => {
+             console.error('Failed to process deep link', err);
+             // Maybe show toast? 
+             // We can't easily show toast here without a toast provider or prop.
+             // For now, console error is expected behavior for "silent fail" or we can navigate to home with error.
+             navigate('/');
+          });
+          
+      } catch (e) {
+        console.error('Invalid share link', e);
+      }
+    }
+  }, [location.search, audio, navigate]);
   
   // Ensure we have an anonymous session on mount
   // Ensure we have an anonymous session on mount & handle OAuth response
