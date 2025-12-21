@@ -112,18 +112,15 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     let title = content.title || ''
     let author = content.author || 'Unknown'
 
-    // 1. Remove Metadata Fluff and Leading Hashtags
-    // Regex cleanup mainly for non-AI cleaned, but hashtags might persist even in AI cleaned.
+    // 1. Remove Metadata Fluff (Conservative Mode)
+    // We want to keep hashtags and list items for Tweets/social content.
     text = text
-      .replace(/^#[A-Za-z0-9_]+\s+/gm, '') // Remove starting hashtags
       .replace(/(published|posted) on .+/gi, '')
-      .replace(/^\d{1,2} [a-z]+ \d{4}/gi, '') 
-      .replace(/!\[.*?\]\(.*?\)/g, '') 
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1') 
-      .replace(/https?:\/\/\S+/g, '') 
-      .replace(/```[\s\S]*?```/g, '') 
-      .replace(/[#*_>~`]/g, '') // Remove remaining markdown symbols
-      .replace(/^\s*[-+*]\s+/gm, '')
+      .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Keep link text, remove URL
+      .replace(/https?:\/\/\S+/g, '') // Remove raw URLs
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/[#*_>~`]/g, '') // Remove markdown syntax chars but keep the text
       .replace(/share on .+/gi, '')
       .trim()
 
