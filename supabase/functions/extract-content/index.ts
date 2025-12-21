@@ -250,9 +250,8 @@ serve(async (req) => {
           const lines = rawContent.split('\n')
           const junkPhrases = [
              'log in', 'sign up', 'don’t miss what’s happening', 
-             'people on x are the first to know', 'article', 'conversation',
-             'more', 'home', 'explore', 'notifications', 'messages', 'bookmarks',
-             'communities', 'profile', 'search', 'settings', '©', 'published time'
+             'people on x are the first to know', 'published time',
+             'see new posts', 'follow', 'click to copy link'
           ]
           
           finalContent = lines.filter(line => {
