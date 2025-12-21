@@ -147,21 +147,15 @@ We welcome contributions from the community! Whether it's enhancing the AI parsi
 
 ---
 
-## 🔧 Configuration
+### Edge Function Secrets (Optional / Advanced)
+The core AudiText experience (Content Extraction + Native Browser TTS) requires minimal setup. However, the backend infrastructure supports advanced capabilities if you wish to enable them.
 
-To run the backend logic (Audio Generation & Content Extraction), you need to configure the following secrets in your Supabase project:
-
-### Edge Function Secrets
-Set these via Supabase CLI (`supabase secrets set_env_file supabase/functions/.env`) or the **Supabase Dashboard > Settings > Edge Functions**.
-
-| Variable Name | Service | Purpose |
-|---------------|---------|---------|
-| `JINA_API_KEY` | **Jina.ai** | Extracts clean markdown from any URL. |
-| `ELEVENLABS_API_KEY` | **ElevenLabs** | Generates high-fidelity audio from text. |
-| `OPENROUTER_API_KEY` | **OpenRouter** | (Recommended) AI cleaning & semantic formatting. |
-| `GEMINI_API_KEY` | **Google Gemini** | (Fallback) AI cleaning if OpenRouter is unavailable. |
-
-> **Note:** These keys are never exposed to the frontend client. They remain secure on the server side.
+| Variable Name | Service | Status | Purpose |
+|---------------|---------|--------|---------|
+| `JINA_API_KEY` | **Jina.ai** | **Required** | Essential for converting raw URLs into clean Markdown. |
+| `OPENROUTER_API_KEY` | **OpenRouter** | *Recommended* | Greatly improves article cleaning and formatting via LLMs. |
+| `ELEVENLABS_API_KEY` | **ElevenLabs** | *Supported* | Enables server-side Neural TTS generation (if you extend the frontend to use it). |
+| `GEMINI_API_KEY` | **Google Gemini** | *Supported* | Alternate fallback for AI cleaning. |
 
 ---
 
