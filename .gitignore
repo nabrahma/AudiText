@@ -26,4 +26,7 @@ supabase/.env
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+
+# Local Docs
+BACKEND_SETUP.md
+IMPLEMENTATION_STATUS.md
