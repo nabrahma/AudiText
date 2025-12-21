@@ -2231,6 +2231,7 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 
 
 // ==================== APP ====================
+function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const audio = useAudio();
