@@ -165,6 +165,12 @@ serve(async (req) => {
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
     const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY')
     
+    // DEBUG LOGGING
+    console.log(`Debug: OpenRouter Key Present? ${!!openRouterApiKey}`)
+    if (openRouterApiKey) {
+        console.log(`Debug: Key length: ${openRouterApiKey.length}, Starts with: ${openRouterApiKey.substring(0, 4)}...`)
+    }
+    
     if (!jinaApiKey) {
       return new Response(JSON.stringify({ error: 'JINA_API_KEY not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -231,23 +237,41 @@ serve(async (req) => {
        } else {
           // Robust Line-by-Line Cleaning for Twitter/Social
           const lines = rawContent.split('\n')
+          
+          // 1. Partial Match Safe (Likely junk if line contains this)
           const junkPhrases = [
              'log in', 'sign up', 'don’t miss what’s happening', 
              'people on x are the first to know', 'published time',
-             'see new posts', 'follow', 'click to copy link',
-             'by signing up', 'conversation', 'article', 'bookmarks',
-             'messages', 'profile', 'more', 'home', 'explore', 'notifications',
-             'communities', 'premium', 'verified orgs', 'business', 'jobs'
+             'see new posts', 'click to copy link',
+             'by signing up', 'verified orgs'
           ]
+
+          // 2. Exact Match Only (Common words that are valid in sentences)
+          const junkEq = new Set([
+             'conversation', 'article', 'bookmarks', 'messages', 'profile', 
+             'more', 'home', 'explore', 'notifications', 'communities', 
+             'premium', 'business', 'jobs', 'follow'
+          ])
           
           finalContent = lines.filter(line => {
              const cleanLine = line.trim().toLowerCase()
              if (cleanLine.length === 0) return true // Keep paragraph breaks
              
-             // 1. Remove isolated numbers (stats like 25, 19K, 2049)
-             if (/^[\d,.KMB]+$/.test(cleanLine)) return false
+             // 1. Remove isolated numbers (stats like 25, 19K, 2049) if they look like stats
+             if (/^[\d,.]+[KMB]?$/.test(cleanLine)) return false
              
-             // 2. Remove standard footer/header noise
+             // 2. Exact Match Checks (Navigation menus)
+             if (junkEq.has(cleanLine)) return false
+
+             // 3. Partial Match Checks (Phrases)
+             for (const junk of junkPhrases) {
+                if (cleanLine.includes(junk)) {
+                    // Only remove if line is short (< 100 chars) ensuring it's likely a UI element
+                    if (cleanLine.length < 100) return false
+                }
+             }
+             
+             // 4. Specific Header/Footer Patterns
              if (cleanLine === 'untitled') return false
              if (cleanLine.includes('/ x')) return false // "Name / X" titles
              if (cleanLine.includes(' on x:')) return false // "Name on X: ..."
@@ -255,10 +279,6 @@ serve(async (req) => {
              if (cleanLine.match(/^=+/)) return false 
              if (cleanLine.match(/^-+/)) return false 
              
-             // 3. Junk Phrases Check
-             for (const junk of junkPhrases) {
-                if (cleanLine.includes(junk)) return false
-             }
              return true
           }).join('\n')
           
