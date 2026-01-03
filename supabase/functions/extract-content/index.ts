@@ -210,26 +210,9 @@ serve(async (req) => {
         console.warn('OpenRouter cleaning failed (null)')
       }
     } 
-    // Fallback to Gemini Direct if OpenRouter not configured or skipped
-    else if (geminiApiKey) {
-      console.log('Cleaning with Gemini Direct...')
-      const aiCleaned = await cleanWithGemini(rawContent, geminiApiKey)
-      
-      if (aiCleaned) {
-        if (aiCleaned.startsWith('ERROR:')) {
-            console.log('Gemini returned error, falling back to manual cleaning:', aiCleaned)
-            lastError = aiCleaned
-            isAiCleaned = false 
-        } else {
-           console.log('Gemini cleaning successful')
-           finalContent = aiCleaned
-           isAiCleaned = true
-           usedProvider = 'gemini'
-        }
-      } else {
-        lastError = "Gemini returned null"
-      }
-    }
+    
+    // User requested to remove Gemini fallback ("try to use only openrouter")
+    // If OpenRouter is missing or fails, we fall back to robust Manual Cleaning.
 
     // 3. Fallback Cleaning for Twitter (if AI failed)
     // ... (rest of logic)
@@ -246,27 +229,49 @@ serve(async (req) => {
        if (lower.includes('log in') && lower.includes('sign up') && rawContent.length < 500) {
           finalContent = "System Notification: X (Twitter) requires login. Please try a different public tweet."
        } else {
-          // Robust Line-by-Line Cleaning for Twitter
+          // Robust Line-by-Line Cleaning for Twitter/Social
           const lines = rawContent.split('\n')
           const junkPhrases = [
              'log in', 'sign up', 'don’t miss what’s happening', 
              'people on x are the first to know', 'published time',
-             'see new posts', 'follow', 'click to copy link'
+             'see new posts', 'follow', 'click to copy link',
+             'by signing up', 'conversation', 'article', 'bookmarks',
+             'messages', 'profile', 'more', 'home', 'explore', 'notifications',
+             'communities', 'premium', 'verified orgs', 'business', 'jobs'
           ]
           
           finalContent = lines.filter(line => {
              const cleanLine = line.trim().toLowerCase()
-             if (cleanLine.length === 0) return true // Keep paragraphs
-             if (cleanLine.length < 2 && !/[a-z0-9]/i.test(cleanLine)) return false // Remove separator chars
-             if (cleanLine.match(/^=+/)) return false // Remove ====
-             if (cleanLine.match(/^-+/)) return false // Remove ----
+             if (cleanLine.length === 0) return true // Keep paragraph breaks
              
-             // Check against junk phrases
+             // 1. Remove isolated numbers (stats like 25, 19K, 2049)
+             if (/^[\d,.KMB]+$/.test(cleanLine)) return false
+             
+             // 2. Remove standard footer/header noise
+             if (cleanLine === 'untitled') return false
+             if (cleanLine.includes('/ x')) return false // "Name / X" titles
+             if (cleanLine.includes(' on x:')) return false // "Name on X: ..."
+             if (cleanLine.length < 2 && !/[a-z0-9]/i.test(cleanLine)) return false 
+             if (cleanLine.match(/^=+/)) return false 
+             if (cleanLine.match(/^-+/)) return false 
+             
+             // 3. Junk Phrases Check
              for (const junk of junkPhrases) {
                 if (cleanLine.includes(junk)) return false
              }
              return true
           }).join('\n')
+          
+          // Final sweep to ensure Title isn't "Untitled" if we have content
+          const tempTitle = extractTitle(finalContent)
+          if (finalContent.length > 50 && (!tempTitle || tempTitle === 'Untitled')) {
+             // Try to use the first meaningful line as title
+             const manualTitle = finalContent.split('\n').find(l => l.trim().length > 10)?.substring(0, 50)
+             if (manualTitle) {
+                 // Prepend as H1 so extractTitle picks it up later
+                 finalContent = `# ${manualTitle}...\n\n${finalContent}`
+             }
+          }
        }
     }
 
