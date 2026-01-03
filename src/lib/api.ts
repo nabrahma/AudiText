@@ -54,7 +54,9 @@ export async function extractContent(url: string): Promise<ExtractedContent> {
     throw new Error(error.error || 'Failed to extract content')
   }
 
-  return response.json()
+  const data = await response.json()
+  console.log('🔍 Extracted Data (Debug):', data)
+  return data
 }
 
 // ============================================
