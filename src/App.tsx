@@ -9,7 +9,7 @@ import { Orb } from '@/components/Orb';
 import { ScrubBar } from '@/components/ScrubBar';
 import ShimmeringText from '@/components/ShimmeringText';
 import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
-import { addToLibrary, deleteLibraryItem, getLibraryItems, toggleFavorite, type LibraryItem } from '@/lib/api';
+import { addToLibrary, clearLibrary, deleteLibraryItem, getLibraryItems, toggleFavorite, type LibraryItem } from '@/lib/api';
 import { AudioProvider, useAudio } from '@/lib/AudioContext';
 import { AnimatePresence, motion, useAnimation, type PanInfo } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2, LogOut, Pause, Play, Share2, SkipBack, SkipForward, Sparkles, Trash2 } from 'lucide-react';
@@ -2028,7 +2028,7 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
                 onClick={async () => {
                    if (confirm('Are you sure you want to delete ALL items from your library? This cannot be undone.')) {
                        try {
-                           await api.clearLibrary();
+                           await clearLibrary();
                            setShowCacheCleared(true); // Reuse feedback toast
                            setTimeout(() => setShowCacheCleared(false), 2000);
                            if (hapticsEnabled && navigator.vibrate) navigator.vibrate([100, 50, 100]);
