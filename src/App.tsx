@@ -2016,7 +2016,6 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
                     <span style={{ flex: 1, fontSize: '15px', fontFamily: 'Funnel Display, sans-serif', color: '#F87171', fontWeight: 500 }}>Sign Out</span>
                 </button>
              </div>
-             </div>
           </div>
 
           {/* Danger Zone */}
