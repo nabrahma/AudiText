@@ -1433,16 +1433,16 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
         <div 
           className="library-scroll-container"
           style={{ 
-            flex: 1,
+            flex: 1, // Fill remaining space
             background: 'rgba(20, 20, 24, 0.85)',
             backdropFilter: 'blur(20px)',
             borderRadius: '24px',
             border: '1.5px solid rgba(255, 255, 255, 0.2)',
             padding: '20px',
-            marginBottom: 'calc(140px + env(safe-area-inset-bottom))', /* Dynamic spacing for nav */
+            marginBottom: 'calc(120px + env(safe-area-inset-bottom))', // Adjusted spacing
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden',
+            overflow: 'hidden', // Clip content to card
           }}
         >
           {/* Search Input */}
@@ -1507,13 +1507,14 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
             ))}
           </div>
           
-          {/* Article List - Scrollable */}
+          {/* Article List - Scrollable Internal */}
           <div 
-            ref={scrollRef}
-            className="library-list-scroll"
+            className="library-list-content"
             style={{ 
               flex: 1, 
               overflowY: 'auto',
+              minHeight: 0, // CRITICAL for nested flex scrolling
+              width: '100%',
               paddingRight: isGuest ? 0 : '8px',
               display: 'flex',
               flexDirection: 'column',
@@ -2015,7 +2016,51 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
                     <span style={{ flex: 1, fontSize: '15px', fontFamily: 'Funnel Display, sans-serif', color: '#F87171', fontWeight: 500 }}>Sign Out</span>
                 </button>
              </div>
+             </div>
           </div>
+
+          {/* Danger Zone */}
+          <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+               <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'rgba(255, 90, 90, 0.8)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                 Danger Zone
+               </h3>
+               
+               <button
+                onClick={async () => {
+                   if (confirm('Are you sure you want to delete ALL items from your library? This cannot be undone.')) {
+                       try {
+                           await api.clearLibrary();
+                           setShowCacheCleared(true); // Reuse feedback toast
+                           setTimeout(() => setShowCacheCleared(false), 2000);
+                           if (hapticsEnabled && navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                       } catch (e) {
+                           console.error("Failed to clear library", e);
+                           alert("Failed to clear library. Please try again.");
+                       }
+                   }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  background: 'rgba(255, 50, 50, 0.1)',
+                  border: '1px solid rgba(255, 50, 50, 0.2)',
+                  borderRadius: '16px',
+                  color: '#ff6b6b',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  fontFamily: 'Funnel Display, sans-serif',
+                  transition: 'background 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Trash2 size={18} />
+                Clear All Library Items
+              </button>
+            </div>
         </div>
       </PullToRefresh>
     </div>

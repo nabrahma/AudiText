@@ -134,6 +134,20 @@ export async function deleteLibraryItem(id: string): Promise<void> {
   if (error) throw error
 }
 
+export async function clearLibrary(): Promise<void> {
+  await ensureAuth();
+  
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { error } = await supabase
+    .from('library_items')
+    .delete()
+    .eq('user_id', user.id)
+
+  if (error) throw error
+}
+
 export async function toggleFavorite(id: string, isFavorite: boolean): Promise<void> {
   await updateLibraryItem(id, { is_favorite: isFavorite })
 }
