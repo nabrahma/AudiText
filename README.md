@@ -63,6 +63,48 @@ Whether you're commuting with a long-form article or multitasking with a Twitter
 
 ---
 
+## 🏗️ Cloud & AI Architecture
+
+<p align="center">
+The system uses a <strong>Dual-Layer Extraction Pipeline</strong> to ensure reliability even when AI credits are exhausted.
+</p>
+
+```mermaid
+graph TD
+    Design[Figma Design] -.-> |"AI Generation (90% Fidelity)"| Frontend
+    User[User / PWA] -->|1. Paste URL| Edge[Supabase Edge Function]
+    User -->|Listen| BrowserTTS[Browser Native TTS]
+    User -->|Sync| DB[(Supabase Database)]
+    
+    subgraph Backend [Edge Function: extract-content]
+        Edge -->|Fetch Raw HTML| Jina[Jina AI Reader]
+        Edge -->|Clean Text| AI_Logic{Has Credits?}
+        AI_Logic -->|Yes| OpenRouter[OpenRouter / GPT-4o]
+        AI_Logic -->|No| Manual[Robust Regex Cleaner]
+    end
+    
+    subgraph Frontend [React + Vite + Framer Motion]
+        Store[Local Storage] <-->|Cache| State[Audio Context]
+        State -->|Audio Data| Visuals
+        subgraph Visuals [Visual Engine]
+             Bits[react-bits / Particles]
+             Orb[Custom HTML5 Canvas Orb]
+        end
+    end
+```
+
+## 🎨 The "Vibe Coding" Workflow
+
+AudiText is a case study in **AI-Native Development**. The goal was to bridge the gap between high-fidelity design and functional code in record time.
+
+1.  **Vision First (Figma)**: The entire "Glassmorphism" aesthetic, including the film grain overlays and glowing accents, was designed in Figma first.
+2.  **90% Fidelity Generation**: Figma screenshots were fed directly to AI agents, which generated the React components with pixel-perfect accuracy on the first pass.
+3.  **Modern Enhancements**:
+    *   **`react-bits`**: Used for the subtle particle background effects.
+    *   **Custom Orb**: A hand-tuned HTML5 Canvas visualization (Simplex Noise) that reacts to the browser's audio frequency data.
+
+---
+
 ## 🛠️ Tech Stack
 
 ### Frontend Core
