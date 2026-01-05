@@ -71,7 +71,7 @@ The system uses a <strong>Dual-Layer Extraction Pipeline</strong> to ensure reli
 
 ```mermaid
 graph TD
-    Design[Figma Design] -.-> |"AI Generation (90% Fidelity)"| Frontend
+    Design[Figma Design] -.-> |"AI Generation (90% Fidelity)"| Components
     User[User / PWA] -->|1. Paste URL| Edge[Supabase Edge Function]
     User -->|Listen| BrowserTTS[Browser Native TTS]
     User -->|Sync| DB[(Supabase Database)]
@@ -84,7 +84,9 @@ graph TD
     end
     
     subgraph Frontend [React + Vite + Framer Motion]
+        Components[React Components]
         Store[Local Storage] <-->|Cache| State[Audio Context]
+        Components -.-> State
         State -->|Audio Data| Visuals
         subgraph Visuals [Visual Engine]
              Bits[react-bits / Particles]
