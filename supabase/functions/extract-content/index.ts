@@ -243,14 +243,18 @@ serve(async (req) => {
              'log in', 'sign up', 'don’t miss what’s happening', 
              'people on x are the first to know', 'published time',
              'see new posts', 'click to copy link',
-             'by signing up', 'verified orgs'
+             'by signing up', 'verified orgs',
+             'terms of service', 'privacy policy', 'cookie policy',
+             'accessibility', 'ads info', '© 20', 'trending now', 
+             'what’s happening', 'politics · trending', 'show more'
           ]
 
           // 2. Exact Match Only (Common words that are valid in sentences)
           const junkEq = new Set([
              'conversation', 'article', 'bookmarks', 'messages', 'profile', 
              'more', 'home', 'explore', 'notifications', 'communities', 
-             'premium', 'business', 'jobs', 'follow'
+             'premium', 'business', 'jobs', 'follow', 'new to x?', 
+             'captured', 'relevant people'
           ])
           
           finalContent = lines.filter(line => {
