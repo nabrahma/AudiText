@@ -1,6 +1,5 @@
 "use client"
 
-import { useTexture } from "@react-three/drei"
 import { Canvas, useFrame, useThree } from "@react-three/fiber"
 import { Suspense, useEffect, useMemo, useRef } from "react"
 import * as THREE from "three"
@@ -100,8 +99,17 @@ function Scene({
   const targetColor1Ref = useRef(new THREE.Color(colors[0]))
   const targetColor2Ref = useRef(new THREE.Color(colors[1]))
   const animSpeedRef = useRef(0.1)
-  // Use local perlin noise texture from public folder
-  const perlinNoiseTexture = useTexture("/perlin-noise.png")
+  // Generate noise procedurally to avoid loading issues
+  const perlinNoiseTexture = useMemo(() => {
+    const size = 512
+    const data = new Uint8Array(size * size * 4)
+    for (let i = 0; i < size * size * 4; i++) {
+        data[i] = Math.random() * 255
+    }
+    const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat)
+    texture.needsUpdate = true
+    return texture
+  }, [])
 
   const agentRef = useRef<AgentState>(agentState)
   const modeRef = useRef<"auto" | "manual">(volumeMode)
