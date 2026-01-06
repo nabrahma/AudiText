@@ -83,8 +83,137 @@ async function cleanWithOpenRouter(rawText: string, apiKey: string): Promise<str
 async function cleanWithGemini(rawText: string, apiKey: string): Promise<string | null> {
   // Use gemini-2.0-flash-exp (Newest, Free/Cheap, Fast) via v1beta
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`
+  
+  const prompt = `
+    You are an expert editor preparing text for Audio Reading (Text-to-Speech).
+    Task: Clean the provided raw web extraction.
+    
+    Rules:
+    1. **Format**: The FIRST LINE must be the Title as a Markdown Header 1. Example: "# Vitalik's thoughts on Ethereum".
+    2. **Format**: The SECOND LINE must be the Author. Example: "Author: Vitalik Buterin".
+    3. **Title Generation**: If the content is a tweet or status update without a clear title, generate a short, descriptive title like "[Author]'s Tweet about [Topic]".
+    4. Extract ONLY the main article body or Social Media Post. 
+    5. Remove sidebars, navigation, "Published on", "Read time", "Share", footer text.
+    6. **CRITICAL**: If this is a Twitter/X or Social Media post, IGNORE "Login", "Sign Up", "See new posts" text. SEARCH for the actual user post/tweet content. It might be buried in the text.
+    7. Remove all Markdown images, links, and code blocks.
+    8. Remove URLs.
+    9. Fix spacing.
+    10. Only return "ERROR: Content unreadable" if there is ABSOLUTELY NO article/post content found.
+    
+    Raw Text:
+    ${rawText.slice(0, 30000)}
+  `
 
-// ... (skipping unchanged prompt lines)
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 8192
+        }
+      })
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      console.error('Gemini API Error:', response.status, errText)
+      return `ERROR: Gemini API Error: ${response.status} - ${errText}`
+    }
+
+    const data = await response.json()
+    const cleanText = data.candidates?.[0]?.content?.parts?.[0]?.text
+    return cleanText || "ERROR: Gemini returned empty content"
+  } catch (e) {
+    console.error('Gemini Call Failed:', e)
+    return `ERROR: Gemini Call Failed: ${String(e)}`
+  }
+}
+
+function detectPlatform(url: string): { source: string; platform: string } {
+  const lowerUrl = url.toLowerCase()
+  if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) return { source: 'Twitter', platform: 'twitter' }
+  if (lowerUrl.includes('medium.com')) return { source: 'Medium', platform: 'medium' }
+  try {
+    const domain = new URL(url).hostname.replace('www.', '')
+    return { source: domain, platform: 'web' }
+  } catch {
+    return { source: 'Web', platform: 'web' }
+  }
+}
+
+function extractTitle(content: string): string {
+  const h1Match = content.match(/^#\s+(.+)$/m)
+  return h1Match ? h1Match[1].trim() : 'Untitled'
+}
+
+function countWords(content: string): number {
+  return content.split(/\s+/).filter(w => w.length > 0).length
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const { url } = await req.json() as ExtractRequest
+
+    if (!url) {
+      return new Response(JSON.stringify({ error: 'URL is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const jinaApiKey = Deno.env.get('JINA_API_KEY')
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
+    const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY')
+    
+    // DEBUG LOGGING
+    console.log(`Debug: Gemini Key Present? ${!!geminiApiKey}`)
+    if (geminiApiKey) console.log(`Debug: Gemini Key length: ${geminiApiKey.length}`)
+    console.log(`Debug: OpenRouter Key Present? ${!!openRouterApiKey}`)
+
+    if (!jinaApiKey) {
+      return new Response(JSON.stringify({ error: 'JINA_API_KEY not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    // 1. Extract Raw Content (Jina)
+    console.log(`Extracting: ${url}`)
+    const jinaRes = await fetch(`https://r.jina.ai/${url}`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${jinaApiKey}`, 'X-Return-Format': 'markdown' },
+    })
+
+    if (!jinaRes.ok) throw new Error(`Jina failed: ${jinaRes.status}`)
+    const rawContent = await jinaRes.text()
+    
+    // Check if empty
+    if (!rawContent || rawContent.trim().length === 0) {
+      return new Response(JSON.stringify({ error: 'No content extracted from URL' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    // 2. AI Cleaning (Gemini Priority -> OpenRouter Fallback)
+    let finalContent = rawContent
+    let isAiCleaned = false
+    let usedProvider = 'none'
+    let lastError = null
+
+    // Try Gemini First (Best Cost/Performance)
+    if (geminiApiKey) {
+      console.log('Cleaning with Gemini...')
+      const aiCleaned = await cleanWithGemini(rawContent, geminiApiKey)
+      
+      if (aiCleaned && !aiCleaned.startsWith('ERROR:')) {
+           console.log('Gemini cleaning successful')
+           finalContent = aiCleaned
+           isAiCleaned = true
+           usedProvider = 'gemini'
+      } else {
+         lastError = aiCleaned
+         console.warn('Gemini cleaning failed, falling back if possible')
+      }
+    }
 
     // Fallback to OpenRouter if Gemini not used or failed
     if (!isAiCleaned && openRouterApiKey) {
@@ -104,13 +233,6 @@ async function cleanWithGemini(rawText: string, apiKey: string): Promise<string 
         }
       }
     }
-
-    // 3. Fallback Cleaning for Twitter (if AI failed)
-    // ... (rest of logic)
-
-    // ...
-
-    // Continues to fallback logic...
 
     // 3. Fallback Cleaning for Twitter (if AI failed)
     // AI might fail due to key/quota, but we still want to read the tweet if possible.
