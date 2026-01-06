@@ -98,8 +98,8 @@ function Scene({
   const targetColor1Ref = useRef(new THREE.Color(colors[0]))
   const targetColor2Ref = useRef(new THREE.Color(colors[1]))
   const animSpeedRef = useRef(0.1)
-  // Use local perlin noise texture via Import (Vite bundling)
-  const perlinNoiseTexture = useTexture(perlinNoiseUrl)
+  // Use local perlin noise texture from public folder
+  const perlinNoiseTexture = useTexture("/perlin-noise.png")
 
   const agentRef = useRef<AgentState>(agentState)
   const modeRef = useRef<"auto" | "manual">(volumeMode)
