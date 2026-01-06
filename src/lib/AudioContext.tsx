@@ -246,6 +246,11 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
     
     utteranceRef.current = u
+    
+    // CRITICAL FIX: Bind to window to prevent Chrome Garbage Collection
+    // chrome-bug: speech synthesis stops if the object is garbage collected during playback
+    (window as any).audiotextUtterance = u; 
+    
     window.speechSynthesis.speak(u)
     
     // Set start time for this chunk using FUNCTIONAL UPDATE to ensure fresh state

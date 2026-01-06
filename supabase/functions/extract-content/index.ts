@@ -81,8 +81,8 @@ async function cleanWithOpenRouter(rawText: string, apiKey: string): Promise<str
 
 // Clean content using Google Gemini (Direct)
 async function cleanWithGemini(rawText: string, apiKey: string): Promise<string | null> {
-  // Use gemini-pro for better availability/compatibility
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`
+  // Use gemini-1.5-flash for best cost/performance ratio
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`
   
   const prompt = `
     You are an expert editor preparing text for Audio Reading (Text-to-Speech).
@@ -101,7 +101,7 @@ async function cleanWithGemini(rawText: string, apiKey: string): Promise<string 
     10. Only return "ERROR: Content unreadable" if there is ABSOLUTELY NO article/post content found.
     
     Raw Text:
-    ${rawText.slice(0, 20000)}
+    ${rawText.slice(0, 30000)}
   `
 
   try {
@@ -109,7 +109,11 @@ async function cleanWithGemini(rawText: string, apiKey: string): Promise<string 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 8192
+        }
       })
     })
 
@@ -166,11 +170,10 @@ serve(async (req) => {
     const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY')
     
     // DEBUG LOGGING
+    console.log(`Debug: Gemini Key Present? ${!!geminiApiKey}`)
+    if (geminiApiKey) console.log(`Debug: Gemini Key length: ${geminiApiKey.length}`)
     console.log(`Debug: OpenRouter Key Present? ${!!openRouterApiKey}`)
-    if (openRouterApiKey) {
-        console.log(`Debug: Key length: ${openRouterApiKey.length}, Starts with: ${openRouterApiKey.substring(0, 4)}...`)
-    }
-    
+
     if (!jinaApiKey) {
       return new Response(JSON.stringify({ error: 'JINA_API_KEY not configured' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
@@ -190,35 +193,45 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No content extracted from URL' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 2. AI Cleaning (OpenRouter OR Gemini)
+    // 2. AI Cleaning (Gemini Priority -> OpenRouter Fallback)
     let finalContent = rawContent
     let isAiCleaned = false
     let usedProvider = 'none'
     let lastError = null
 
-    if (openRouterApiKey) {
-      console.log('Cleaning with OpenRouter...')
+    // Try Gemini First (Best Cost/Performance)
+    if (geminiApiKey) {
+      console.log('Cleaning with Gemini 1.5 Flash...')
+      const aiCleaned = await cleanWithGemini(rawContent, geminiApiKey)
+      
+      if (aiCleaned && !aiCleaned.startsWith('ERROR:')) {
+           console.log('Gemini cleaning successful')
+           finalContent = aiCleaned
+           isAiCleaned = true
+           usedProvider = 'gemini'
+      } else {
+         lastError = aiCleaned
+         console.warn('Gemini cleaning failed, falling back if possible')
+      }
+    }
+
+    // Fallback to OpenRouter if Gemini not used or failed
+    if (!isAiCleaned && openRouterApiKey) {
+      console.log('Cleaning with OpenRouter (Fallback)...')
       const aiCleaned = await cleanWithOpenRouter(rawContent, openRouterApiKey)
       
       if (aiCleaned) {
         if (aiCleaned.startsWith('ERROR:')) {
-            console.log('OpenRouter returned error, falling back:', aiCleaned)
-            lastError = aiCleaned
-            isAiCleaned = false 
+            console.log('OpenRouter returned error:', aiCleaned)
+            if (!lastError) lastError = aiCleaned 
         } else {
            console.log('OpenRouter cleaning successful')
            finalContent = aiCleaned
            isAiCleaned = true
            usedProvider = 'openrouter'
         }
-      } else {
-        lastError = "OpenRouter returned null"
-        console.warn('OpenRouter cleaning failed (null)')
       }
-    } 
-    
-    // User requested to remove Gemini fallback ("try to use only openrouter")
-    // If OpenRouter is missing or fails, we fall back to robust Manual Cleaning.
+    }
 
     // 3. Fallback Cleaning for Twitter (if AI failed)
     // ... (rest of logic)
