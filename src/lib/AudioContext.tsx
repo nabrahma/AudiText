@@ -268,6 +268,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     // Clamp to 0-100
     const safeProgress = Math.min(100, Math.max(0, Math.round(progress)))
     
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return // Don't try to save if guest
+    
     const { error } = await supabase
       .from('library_items')
       .update({ progress: safeProgress })

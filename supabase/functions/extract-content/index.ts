@@ -312,6 +312,11 @@ serve(async (req) => {
        }
     }
 
+    // DEBUG: If AI failed, append error to content so user sees it
+    if (!isAiCleaned && lastError) {
+        finalContent = `[SYSTEM: AI Cleaning Failed - ${lastError?.substring(0, 100)}... Using Fallback]\n\n${finalContent}`
+    }
+
     // 4. Parse Metadata
     const { source, platform } = detectPlatform(url)
     const title = extractTitle(isAiCleaned ? finalContent : rawContent) 
