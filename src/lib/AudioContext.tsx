@@ -159,8 +159,35 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     // 5. Clean up multiple newlines/spaces
     text = text.replace(/\n{3,}/g, '\n\n').trim()
 
-    // 6. Split into sentences (approximate) including newlines as chunk breaks
-    return text.match(/[^.!?\n]+[.!?\n]*/g) || [text]
+    // 6. Split into smaller chunks (Sentences)
+    // We split by . ! ? followed by space or newline.
+    // This creates "natural" pauses rather than huge blocks.
+    const chunks = text
+        .replace(/([.!?])\s+/g, '$1|') // Mark split points
+        .split('|')
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
+
+    // Merge very short chunks (e.g. "Mr.", "No.") with next chunk to avoid awkward pauses
+    const mergedChunks: string[] = []
+    let temp = ''
+    
+    for (const chunk of chunks) {
+        if (temp) {
+            temp += ' ' + chunk
+            if (temp.length > 20) { // If combined is reasonably long, push it
+                mergedChunks.push(temp)
+                temp = ''
+            }
+        } else if (chunk.length < 20 && !chunk.endsWith('.')) { // Start accumulation if short and not a sentence end
+             temp = chunk
+        } else {
+             mergedChunks.push(chunk)
+        }
+    }
+    if (temp) mergedChunks.push(temp)
+
+    return mergedChunks.length > 0 ? mergedChunks : [text]
   }
 
   // Cleanup
@@ -226,29 +253,31 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
 
 
-  const speakChunk = (chunks: string[], index: number, speed: number) => {
+  const speakChunk = (chunks: string[], index: number, speed: number, isAutoTransition = false) => {
     if (index >= chunks.length) {
       setState(p => ({ ...p, isPlaying: false, currentChunkIndex: 0, currentTime: 0 }))
       return
     }
 
-    isManualCancel.current = true
-    window.speechSynthesis.cancel()
-    
-    // Safety timeout to reset flag in case onend doesn't fire (browser quirk)
-    setTimeout(() => { isManualCancel.current = false }, 50)
+    // Only cancel if this is a manual seek/skip, otherwise let the natural flow happen (though onEnd implies done)
+    if (!isAutoTransition) {
+        isManualCancel.current = true
+        window.speechSynthesis.cancel()
+        // Safety timeout to reset flag in case onend doesn't fire (browser quirk)
+        setTimeout(() => { isManualCancel.current = false }, 50)
+    }
 
     const u = new SpeechSynthesisUtterance(chunks[index])
     u.rate = speed
     u.onend = () => {
-      if (isManualCancel.current) return
+      // If user manually cancelled (seek), don't trigger next
+      if (isManualCancel.current && !isAutoTransition) return
       playNext()
     }
     
     utteranceRef.current = u;
     
     // CRITICAL FIX: Bind to window to prevent Chrome Garbage Collection
-    // chrome-bug: speech synthesis stops if the object is garbage collected during playback
     (window as any).audiotextUtterance = u; 
     
     window.speechSynthesis.speak(u)
@@ -302,7 +331,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }))
     
     // Start Speaking
-    speakChunk(chunks, 0, speed)
+    speakChunk(chunks, 0, speed, false)
   }
   
   // ... (speakChunk remains mostly same, but we might want to save periodically? 
@@ -317,7 +346,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       
       if (nextIdx < prev.nativeChunks.length) {
         // Continue playing
-        setTimeout(() => speakChunk(prev.nativeChunks, nextIdx, prev.playbackSpeed), 0)
+        setTimeout(() => speakChunk(prev.nativeChunks, nextIdx, prev.playbackSpeed, true), 0)
         
         // Optional: Save progress every 10% or so? 
         // For simplicity, we save on Pause.
@@ -341,7 +370,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume()
     } else {
-      speakChunk(state.nativeChunks, state.currentChunkIndex, state.playbackSpeed)
+      speakChunk(state.nativeChunks, state.currentChunkIndex, state.playbackSpeed, false)
     }
   }
 
@@ -367,14 +396,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const safeIdx = Math.max(0, Math.min(targetIdx, state.nativeChunks.length - 1))
     
     setState(p => ({ ...p, currentTime: time, currentChunkIndex: safeIdx, isPlaying: true }))
-    speakChunk(state.nativeChunks, safeIdx, state.playbackSpeed)
+    speakChunk(state.nativeChunks, safeIdx, state.playbackSpeed, false)
   }
 
   const setSpeed = (speed: number) => {
     setState(p => ({ ...p, playbackSpeed: speed }))
     // Restart current chunk with new speed
     if (state.isPlaying) {
-      speakChunk(state.nativeChunks, state.currentChunkIndex, speed)
+      speakChunk(state.nativeChunks, state.currentChunkIndex, speed, false)
     }
   }
 
