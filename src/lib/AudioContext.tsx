@@ -305,7 +305,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       .update({ progress: safeProgress })
       .eq('id', id)
       
-    if (error) console.error('Failed to save progress:', error)
+    // Suppress "Not authenticated" noise - it just means we can't save progress, which is fine
+    if (error && !error.message.includes('authenticated')) {
+        console.error('Failed to save progress:', error)
+    }
   }
 
   const playContent = (content: ExtractedContent, speed: number = 1, itemId?: string, url?: string) => {
