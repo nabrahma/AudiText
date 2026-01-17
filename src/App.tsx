@@ -1,4 +1,3 @@
-import DarkVeil from '@/components/DarkVeil';
 import { Dither } from '@/components/Dither';
 import DotGrid from '@/components/DotGrid';
 import { BookOpenTextIcon } from '@/components/icons/BookOpenTextIcon';
@@ -19,7 +18,6 @@ import { PullToRefresh } from './components/PullToRefresh';
 import './index.css';
 
 import { supabase } from '@/lib/supabase';
-import { PALETTES, PALETTE_HUE_SHIFTS, PALETTE_KEYS, type PaletteKey } from '@/lib/theme';
 import { AuthPage } from './AuthPage';
 
 
@@ -152,7 +150,7 @@ function Navigation() {
 
 
 // ==================== HOME PAGE ====================
-function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => void }) {
+function HomePage({ onVisit }: { onVisit: () => void }) {
   const navigate = useNavigate();
   const [url, setUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -268,20 +266,7 @@ function HomePage({ palette, onVisit }: { palette: PaletteKey; onVisit: () => vo
         </motion.div>
       )}
 
-      {/* DarkVeil Background - Fullscreen */}
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 0,
-        transform: 'rotate(180deg)',
-      }}>
-        <DarkVeil 
-          hueShift={PALETTE_HUE_SHIFTS[palette]}
-          speed={0.6}
-          noiseIntensity={0.15}
-          warpAmount={0.5}
-        />
-      </div>
+
       
       {/* Noise Overlay */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
@@ -1163,7 +1148,7 @@ const SwipeableItem = ({
   );
 };
 
-function LibraryPage({ palette }: { palette: PaletteKey }) {
+function LibraryPage() {
   const audio = useAudio();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1315,20 +1300,7 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
         overflow: 'hidden',
       }}
     >
-      {/* DarkVeil Background - Same as Home */}
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 0,
-        transform: 'rotate(180deg)',
-      }}>
-        <DarkVeil 
-          hueShift={PALETTE_HUE_SHIFTS[palette]}
-          speed={0.6}
-          noiseIntensity={0.15}
-          warpAmount={0.5}
-        />
-      </div>
+
       
       {/* Noise Overlay */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
@@ -1686,8 +1658,13 @@ function LibraryPage({ palette }: { palette: PaletteKey }) {
 }
 
 // ==================== SETTINGS PAGE ====================
-function SettingsPage({ palette }: { palette: PaletteKey }) {
-  const colors = PALETTES[palette];
+function SettingsPage() {
+  // fast hardcoded theme for now since engine is removed
+  const colors = {
+    primary: '#FF6B35',
+    secondary: '#FF8C42',
+    tertiary: '#FFD166',
+  };
   const audio = useAudio(); // Connect to real audio context
   
   // Persistent State
@@ -1786,20 +1763,6 @@ function SettingsPage({ palette }: { palette: PaletteKey }) {
         overflow: 'hidden',
       }}
     >
-      {/* DarkVeil Background - Same as Home */}
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 0,
-        transform: 'rotate(180deg)',
-      }}>
-        <DarkVeil 
-          hueShift={PALETTE_HUE_SHIFTS[palette]}
-          speed={0.6}
-          noiseIntensity={0.15}
-          warpAmount={0.5}
-        />
-      </div>
       
       {/* Noise Overlay */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
@@ -2250,8 +2213,6 @@ function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const audio = useAudio();
-  const [palette, setPalette] = useState<PaletteKey>('ember');
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const processedRef = useRef<string | null>(null);
 
   // Deep Link Handler (Share Feature)
@@ -2349,27 +2310,16 @@ function AppLayout() {
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]);
   
-  const handleHomeVisit = () => {
-    if (isTransitioning) return;
-    setIsTransitioning(true);
-    
-    const currentIndex = PALETTE_KEYS.indexOf(palette);
-    const nextPalette = PALETTE_KEYS[(currentIndex + 1) % PALETTE_KEYS.length];
-    
-    setTimeout(() => {
-      setPalette(nextPalette);
-      setIsTransitioning(false);
-    }, 100);
-  };
+
   
   const appContent = (
     <div style={{ background: '#000', minHeight: '100vh' }}>
       <Routes location={location}>
-        <Route path="/" element={<HomePage palette={palette} onVisit={handleHomeVisit} />} />
+        <Route path="/" element={<HomePage onVisit={() => {}} />} />
         <Route path="/player" element={<PlayerPage />} />
-        <Route path="/auth" element={<AuthPage palette={palette} />} />
-        <Route path="/library" element={<LibraryPage palette={palette} />} />
-        <Route path="/settings" element={<SettingsPage palette={palette} />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/library" element={<LibraryPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Routes>
       <Navigation />
     </div>

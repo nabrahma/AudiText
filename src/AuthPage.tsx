@@ -1,4 +1,3 @@
-import { type PaletteKey, PALETTE_HUE_SHIFTS } from '@/lib/theme'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -7,10 +6,15 @@ import { supabase } from './lib/supabase'
 // Shared Components (Importing directly from App's dependencies references would be better, 
 // strictly we should move these to separate files, but for now I assume they are globally available or I import them if they are exported from components)
 // Actually App.tsx imports them from '@/components/...'. I will do the same.
-import DarkVeil from '@/components/DarkVeil'
 import Noise from '@/components/Noise'
 import ShimmeringText from '@/components/ShimmeringText'
 import { Loader2 } from 'lucide-react'
+
+// ... (GoogleIcon and RotatingWord omitted for brevity if unchanged, but I need to include them if I am replacing a block that includes them. 
+// Wait, I can target specific chunks or just replace the component signature and imports.
+// I will target imports first, then component signature/JSX.
+
+// Actually, let's just do it in chunks to be safe.)
 
 // Simple Google Icon SVG
 const GoogleIcon = () => (
@@ -56,7 +60,7 @@ function RotatingWord() {
 }
 
 
-export function AuthPage({ palette }: { palette: PaletteKey }) {
+export function AuthPage() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
@@ -86,10 +90,7 @@ export function AuthPage({ palette }: { palette: PaletteKey }) {
   return (
     <div style={{ height: '100dvh', position: 'relative', background: '#000', overflow: 'hidden' }}>
       
-      {/* DarkVeil Background */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, transform: 'rotate(180deg)' }}>
-        <DarkVeil hueShift={PALETTE_HUE_SHIFTS[palette]} speed={0.6} noiseIntensity={0.15} warpAmount={0.5} />
-      </div>
+
       
       {/* Noise Overlay */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
