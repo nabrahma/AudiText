@@ -5,7 +5,7 @@ import { BookOpenTextIcon } from '@/components/icons/BookOpenTextIcon';
 import { HouseIcon } from '@/components/icons/HouseIcon';
 import { SettingsIcon } from '@/components/icons/SettingsIcon';
 import Noise from '@/components/Noise';
-// import { Orb } from '@/components/Orb';
+
 import { ScrubBar } from '@/components/ScrubBar';
 import ShimmeringText from '@/components/ShimmeringText';
 import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
