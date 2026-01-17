@@ -5,7 +5,7 @@ import { BookOpenTextIcon } from '@/components/icons/BookOpenTextIcon';
 import { HouseIcon } from '@/components/icons/HouseIcon';
 import { SettingsIcon } from '@/components/icons/SettingsIcon';
 import Noise from '@/components/Noise';
-import { Orb } from '@/components/Orb';
+// import { Orb } from '@/components/Orb';
 import { ScrubBar } from '@/components/ScrubBar';
 import ShimmeringText from '@/components/ShimmeringText';
 import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
@@ -597,21 +597,7 @@ function PlayerPage() {
     audio.setSpeed(speeds[nextIndex]);
   };
   
-  // Audio amplitude simulation for the orb
-  const [amplitude, setAmplitude] = useState(0);
-  
-  useEffect(() => {
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        // Simulate audio amplitude based on playback
-        setAmplitude(Math.random() * 0.6 + 0.2);
-      }, 100);
-      return () => { 
-        clearInterval(interval); 
-        setAmplitude(0); 
-      };
-    }
-  }, [isPlaying]);
+
   
   // Parse metadata from chunks if header is generic
   const [parsedMeta, setParsedMeta] = useState({ title: '', author: '' });
@@ -826,23 +812,8 @@ function PlayerPage() {
           marginBottom: '24px',
           flexShrink: 0,
         }}>
-          <div style={{ 
-            width: '180px', 
-            height: '180px',
-            borderRadius: '50%',
-            overflow: 'hidden',
-            background: '#000',
-            boxShadow: '0 0 40px rgba(0,0,0,0.5)',
-            flexShrink: 0,
-          }}>
-            <Orb 
-              colors={["#CADCFC", "#A0B9D1"]}
-              agentState={isPlaying ? 'talking' : null}
-              volumeMode="manual"
-              manualOutput={isPlaying ? amplitude : 0.1}
-              manualInput={isPlaying ? amplitude * 0.5 : 0}
-            />
-          </div>
+            {/* Orb Removed by user request */}
+            <div style={{ height: '180px', width: '180px' }} /> 
         </div>
         
         {/* Scrub Bar */}
