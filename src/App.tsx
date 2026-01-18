@@ -182,6 +182,8 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
     if (!url.trim()) return;
     
     // DEV BYPASS: Quick Player Check
+    // TODO: REMOVE BEFORE PRODUCTION (Internal Testing Only)
+    // -----------------------------------------------------
     if (url.toLowerCase() === 'test' || url.toLowerCase() === 'debug') {
       audio.playContent({
         title: "Test Article",
