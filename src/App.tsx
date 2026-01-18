@@ -2306,6 +2306,12 @@ function AppLayout() {
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
+      
+      {/* Global Persistent Noise Overlay */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <Noise patternAlpha={15} patternSize={100} />
+      </div>
+
       <Navigation />
     </div>
   );
