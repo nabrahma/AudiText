@@ -1,4 +1,3 @@
-import { Dither } from '@/components/Dither';
 import DotGrid from '@/components/DotGrid';
 import { BookOpenTextIcon } from '@/components/icons/BookOpenTextIcon';
 import { HouseIcon } from '@/components/icons/HouseIcon';
@@ -683,21 +682,7 @@ function PlayerPage() {
         overflow: 'hidden',
       }}
     >
-      {/* Dither Background - Grey like ElevenLabs preview - reduced opacity */}
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 0,
-        opacity: 0.25,
-      }}>
-        <Dither 
-          waveColor="#606060"
-          backgroundColor="#0a0a0a"
-          waveAmplitude={30}
-          waveFrequency={0.012}
-          waveSpeed={0.012}
-        />
-      </div>
+
       
       {/* Gradient fade to black at top */}
       <div style={{
@@ -872,9 +857,8 @@ function PlayerPage() {
             style={{ 
               width: '44px',
               height: '44px',
-              background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)',
-              border: '1px solid rgba(255,255,255,0.1)', 
-              borderRadius: '50%', 
+              background: 'transparent',
+              border: 'none', 
               cursor: 'pointer', 
               color: 'rgba(255,255,255,0.7)',
               display: 'flex',
@@ -882,82 +866,81 @@ function PlayerPage() {
               justifyContent: 'center',
             }}
           >
-            <Share2 size={16} />
+            <Share2 size={20} />
           </button>
           
+          {/* Skip Back */}
           {/* Skip Back */}
           <button 
             onClick={() => audio.seek(Math.max(0, currentTime - 15))} 
             style={{ 
               width: '48px',
               height: '40px',
-              background: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 100%)',
-              border: '1px solid rgba(255,255,255,0.8)', 
-              borderRadius: '50%',
+              background: 'transparent',
+              border: 'none', 
               cursor: 'pointer', 
-              color: '#000',
+              color: '#fff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <SkipBack size={18} fill="#050505" />
+            <SkipBack size={24} fill="#ffffff" />
           </button>
           
+          {/* Play/Pause */}
           {/* Play/Pause */}
           <button 
             onClick={togglePlay} 
             style={{ 
               width: '64px', 
               height: '56px', 
-              borderRadius: '50%', 
-              background: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 100%)', 
-              border: '1px solid rgba(255,255,255,0.8)', 
+              background: 'transparent',
+              border: 'none', 
               cursor: 'pointer', 
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
             }}
           >
             {isPlaying ? (
-              <Pause size={28} fill="#050505" color="#050505" />
+              <Pause size={48} fill="#ffffff" color="#ffffff" />
             ) : (
-              <Play size={28} fill="#050505" color="#050505" style={{ marginLeft: '4px' }} />
+              <Play size={48} fill="#ffffff" color="#ffffff" style={{ marginLeft: '4px' }} />
             )}
           </button>
           
+          {/* Skip Forward */}
           {/* Skip Forward */}
           <button 
             onClick={() => audio.seek(Math.min(totalDuration, currentTime + 15))} 
             style={{ 
               width: '48px',
               height: '40px',
-              background: 'linear-gradient(145deg, #ffffff 0%, #e8e8e8 100%)',
-              border: '1px solid rgba(255,255,255,0.8)', 
-              borderRadius: '50%',
+              background: 'transparent',
+              border: 'none', 
               cursor: 'pointer', 
-              color: '#000',
+              color: '#fff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <SkipForward size={18} fill="#050505" />
+            <SkipForward size={24} fill="#ffffff" />
           </button>
           
+          {/* Speed Toggle */}
           {/* Speed Toggle */}
           <button 
             onClick={cycleSpeed}
             style={{ 
               width: '44px',
               height: '44px',
-              background: 'linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%)',
-              border: '1px solid rgba(255,255,255,0.1)', 
-              borderRadius: '50%', 
+              background: 'transparent',
+              border: 'none', 
               cursor: 'pointer', 
               color: '#fff',
-              fontSize: '12px',
+              fontSize: '14px',
               fontWeight: 600,
               fontFamily: 'Genos, sans-serif',
               display: 'flex',
