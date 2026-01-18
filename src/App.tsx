@@ -180,6 +180,21 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
 
   const handleListen = async () => {
     if (!url.trim()) return;
+    
+    // DEV BYPASS: Quick Player Check
+    if (url.toLowerCase() === 'test' || url.toLowerCase() === 'debug') {
+      audio.playContent({
+        title: "Test Article",
+        content: "This is a test article for development purposes. It allows you to verify the player functionality without extracting real content from the web. This saves time and API usage during debugging.",
+        author: "Dev Team",
+        source: "Localhost",
+        platform: "web",
+        word_count: 50
+      });
+      navigate('/player');
+      return;
+    }
+    
     setError(null);
     
     // SECURITY 1: Length Check
