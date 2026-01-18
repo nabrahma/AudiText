@@ -17,9 +17,8 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  build: {
     chunkSizeWarningLimit: 1000,
-    outDir: 'build',
+    // outDir: 'build' (Reverted to default 'dist')
     rollupOptions: {
       output: {
         manualChunks: {
