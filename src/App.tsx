@@ -443,10 +443,7 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
         </div>
         
         {/* Input Section - Moved upwards */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+        <div 
           style={{ 
             position: 'absolute',
             bottom: '180px', /* Increased from 140px for breathing space */
