@@ -116,7 +116,7 @@ export function AuthPage() {
         {/* Header / Version */}
         <div style={{ paddingTop: '24px', textAlign: 'center' }}>
           <span className="genos-font" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', fontWeight: 400, fontStyle: 'italic', letterSpacing: '0.05em' }}>
-            v1.0
+            v1.0.1
           </span>
         </div>
 
