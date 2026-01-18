@@ -1,0 +1,7 @@
+# Vercel Ignore
+.gemini
+brain
+supabase
+scripts
+*.md
+.gitignore
