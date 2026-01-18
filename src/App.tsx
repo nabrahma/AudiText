@@ -318,7 +318,7 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
             fontStyle: 'italic',
             letterSpacing: '0.05em',
           }}>
-            v1.0.2
+            v1.0.3
           </span>
         </div>
         

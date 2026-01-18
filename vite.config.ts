@@ -11,6 +11,7 @@ export default defineConfig({
     tailwindcss(),
     // VitePWA removed for stability debugging
   ],
+  base: '/',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
