@@ -332,10 +332,8 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
         }}>
           
           {/* Logo Section */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+          {/* Logo Section */}
+          <div 
             style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -363,14 +361,10 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
             }}>
               AudiText
             </span>
-          </motion.div>
+          </div>
           
           {/* Hero Typography */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
+          <div>
             {/* Line 1: Listen to [Audio] of - NO WRAP */}
             <div style={{ 
               display: 'flex', 
@@ -436,10 +430,7 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
           </motion.div>
           
           {/* Subtitle - Funnel Display Light (300) 19.2px */}
-          <motion.p 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+          <p 
             style={{ 
               marginTop: '32px', 
               fontSize: '19.2px', /* Exact requested size */
@@ -451,7 +442,7 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
             }}
           >
             From your favorite X account<br />and Websites.
-          </motion.p>
+          </p>
         </div>
         
         {/* Input Section - Moved upwards */}
