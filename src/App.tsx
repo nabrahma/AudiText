@@ -541,7 +541,7 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
                 : 'Preparing audio...'}
             </p>
           )}
-        </motion.div>
+        </div>
       </div>
       </PullToRefresh>
     </div>
