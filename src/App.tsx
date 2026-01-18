@@ -332,7 +332,6 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
         }}>
           
           {/* Logo Section */}
-          {/* Logo Section */}
           <div 
             style={{ 
               display: 'flex', 
@@ -364,70 +363,68 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
           </div>
           
           {/* Hero Typography */}
-          <div>
-            {/* Line 1: Listen to [Audio] of - NO WRAP */}
+          {/* Line 1: Listen to [Audio] of - NO WRAP */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            flexWrap: 'nowrap', /* Force single line */
+            gap: '12px',
+            lineHeight: 1.1,
+            marginBottom: '8px',
+          }}>
+            <span style={{ 
+              fontSize: '48px', 
+              fontWeight: 800, 
+              letterSpacing: '-0.04em',
+              fontFamily: 'Funnel Display, sans-serif',
+              whiteSpace: 'nowrap',
+            }}>
+              Listen to
+            </span>
+            <div 
+              className="shine-pill"
+              style={{ 
+                height: '42px',
+                padding: '0 20px',
+                borderRadius: '100px',
+                border: '1.5px solid rgba(255,255,255,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <ShimmeringText>
+                Audio
+              </ShimmeringText>
+            </div>
+            <span style={{ 
+              fontSize: '48px', 
+              fontWeight: 800, 
+              letterSpacing: '-0.04em',
+              fontFamily: 'Funnel Display, sans-serif',
+            }}>
+              of
+            </span>
+          </div>
+          
+          {/* Line 2: [Rotating Word] with dot */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'flex-end', /* Align dot to bottom */
+            gap: '16px', 
+          }}>
+            <RotatingWord />
             <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              flexWrap: 'nowrap', /* Force single line */
-              gap: '12px',
-              lineHeight: 1.1,
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              background: 'rgba(255,255,255,0.9)',
               marginBottom: '8px',
-            }}>
-              <span style={{ 
-                fontSize: '48px', 
-                fontWeight: 800, 
-                letterSpacing: '-0.04em',
-                fontFamily: 'Funnel Display, sans-serif',
-                whiteSpace: 'nowrap',
-              }}>
-                Listen to
-              </span>
-              <div 
-                className="shine-pill"
-                style={{ 
-                  height: '42px',
-                  padding: '0 20px',
-                  borderRadius: '100px',
-                  border: '1.5px solid rgba(255,255,255,0.25)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'transparent',
-                  position: 'relative',
-                  overflow: 'hidden',
-                }}
-              >
-                <ShimmeringText>
-                  Audio
-                </ShimmeringText>
-              </div>
-              <span style={{ 
-                fontSize: '48px', 
-                fontWeight: 800, 
-                letterSpacing: '-0.04em',
-                fontFamily: 'Funnel Display, sans-serif',
-              }}>
-                of
-              </span>
-            </div>
-            
-            {/* Line 2: [Rotating Word] with dot */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'flex-end', /* Align dot to bottom */
-              gap: '16px', 
-            }}>
-              <RotatingWord />
-              <div style={{ 
-                width: '8px', 
-                height: '8px', 
-                borderRadius: '50%', 
-                background: 'rgba(255,255,255,0.9)',
-                marginBottom: '8px',
-              }} />
-            </div>
-          </motion.div>
+            }} />
+          </div>
           
           {/* Subtitle - Funnel Display Light (300) 19.2px */}
           <p 
