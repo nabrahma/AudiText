@@ -941,6 +941,8 @@ function PlayerPage() {
   );
 }
 
+
+type FilterType = 'All' | 'Favorites' | 'Saved' | 'Tweets' | 'Articles';
 const FILTER_OPTIONS: FilterType[] = ['All', 'Favorites', 'Saved', 'Tweets', 'Articles'];
 
 // Swipeable Item Component
