@@ -1545,11 +1545,11 @@ function LibraryPage() {
 
 // ==================== SETTINGS PAGE ====================
 function SettingsPage() {
-  // fast hardcoded theme for now since engine is removed
+  // Green accent colors matching home screen dot
   const colors = {
-    primary: '#FF6B35',
-    secondary: '#FF8C42',
-    tertiary: '#FFD166',
+    primary: '#4ADE80',    // Green-400 (matches home dot)
+    secondary: '#22C55E',  // Green-500
+    tertiary: '#86EFAC',   // Green-300
   };
   const audio = useAudio(); // Connect to real audio context
   
