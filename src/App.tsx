@@ -690,13 +690,13 @@ function PlayerPage() {
         pointerEvents: 'none',
       }} />
       
-      {/* Content Container - Flex Column to fill 100dvh */}
+      {/* Content Container - Flex Column to fill parent */}
       <div style={{ 
         position: 'relative', 
         zIndex: 2, 
         width: '100%',
-        padding: '0 24px 32px 24px', // Added bottom padding to lift controls/scrub bar up slightly
-        height: '100%', // Fill the parent (100dvh)
+        padding: '0 24px 32px 24px',
+        flex: 1, // KEY: Expand to fill remaining space in parent flex column
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
@@ -769,23 +769,11 @@ function PlayerPage() {
           </p>
         </div>
         
-        {/* Spacer removed - using absolute positioning instead */}
-        
-        {/* Bottom Fixed Controls Section */}
-        <div style={{
-          position: 'absolute',
-          bottom: '32px',
-          left: '24px',
-          right: '24px',
-          zIndex: 10,
-        }}>
-        
-        {/* Scrub Bar */}
+        {/* Scrub Bar - margin-top:auto pushes to bottom */}
         <div style={{ 
-          marginTop: 'auto', // PROOF: Force to bottom
+          marginTop: 'auto',
           marginBottom: '20px',
           padding: '0 8px',
-          flexShrink: 0,
         }}>
           <ScrubBarContainer
             duration={totalDuration}
@@ -944,7 +932,6 @@ function PlayerPage() {
             {audio.playbackSpeed}x
           </button>
         </div>
-        </div>
         
 
 
@@ -954,10 +941,6 @@ function PlayerPage() {
   );
 }
 
-// Sample library items data
-
-
-type FilterType = 'All' | 'Favorites' | 'Saved' | 'Tweets' | 'Articles';
 const FILTER_OPTIONS: FilterType[] = ['All', 'Favorites', 'Saved', 'Tweets', 'Articles'];
 
 // Swipeable Item Component
