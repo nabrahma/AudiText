@@ -955,39 +955,7 @@ function PlayerPage() {
         </div>
         
 
-                !isHiddenChunk(chunk) && (
-                  <p 
-                    key={i} 
-                    id={`chunk-${i}`} // ID for scroll targeting
-                    style={{ 
-                      marginBottom: '16px',
-                      color: i === audio.currentChunkIndex ? '#fff' : 'rgba(255,255,255,0.5)', 
-                      opacity: i === audio.currentChunkIndex ? 1 : 0.6,
-                      fontSize: i === audio.currentChunkIndex ? '17px' : '16px',
-                      transform: i === audio.currentChunkIndex ? 'scale(1.02)' : 'scale(1)',
-                      transformOrigin: 'left center',
-                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                      padding: '4px 0',
-                    }}>
-                    {chunk}
-                  </p>
-                )
-              ))
-            ) : audio.content?.content ? (
-              audio.content.content
-                .split('\n\n')
-                .map((para, i) => (
-                  <p key={i} style={{ marginBottom: '16px' }}>
-                    {para.replace(/[#*]/g, '')}
-                  </p>
-                ))
-            ) : (
-              <p>Content not available.</p>
-            )}
-            
-            {/* Spacer at bottom to allow potential scrolling of last element to center */}
-            <div style={{ height: '40%' }} />
-          </div>
+
 
         </div>
       </div>
