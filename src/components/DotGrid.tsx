@@ -386,4 +386,5 @@ const DotGrid: React.FC<DotGridProps> = ({
   );
 };
 
-export default DotGrid;
+// Memoize to prevent re-renders when parent changes but props are the same
+export default React.memo(DotGrid);

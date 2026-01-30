@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 
 interface NoiseProps {
   patternSize?: number;
@@ -8,7 +8,8 @@ interface NoiseProps {
   patternAlpha?: number;
 }
 
-export default function Noise({
+// Memoized to prevent re-renders when parent updates
+const Noise = memo(function Noise({
   patternSize = 150,
   patternScaleX = 1,
   patternScaleY = 1,
@@ -90,4 +91,6 @@ export default function Noise({
       }}
     />
   );
-}
+});
+
+export default Noise;

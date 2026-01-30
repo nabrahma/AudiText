@@ -11,7 +11,7 @@ import { addToLibrary, clearLibrary, deleteLibraryItem, getLibraryItems, toggleF
 import { AudioProvider, useAudio } from '@/lib/AudioContext';
 import { AnimatePresence, motion, useAnimation, type PanInfo } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2, LogOut, Pause, Play, Share2, SkipBack, SkipForward, Sparkles, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { PullToRefresh } from './components/PullToRefresh';
 import './index.css';
@@ -945,8 +945,8 @@ function PlayerPage() {
 type FilterType = 'All' | 'Favorites' | 'Saved' | 'Tweets' | 'Articles';
 const FILTER_OPTIONS: FilterType[] = ['All', 'Favorites', 'Saved', 'Tweets', 'Articles'];
 
-// Swipeable Item Component
-const SwipeableItem = ({ 
+// Performance: Memoized swipeable item to prevent re-renders
+const SwipeableItem = React.memo(({ 
   item, 
   onDelete, 
   children 
@@ -957,7 +957,7 @@ const SwipeableItem = ({
 }) => {
   const controls = useAnimation();
   
-  const handleDragEnd = async (_: any, info: PanInfo) => {
+  const handleDragEnd = useCallback(async (_: any, info: PanInfo) => {
     const offset = info.offset.x;
     if (offset < -100) {
       // Deleting
@@ -966,14 +966,14 @@ const SwipeableItem = ({
       // Snap back
       controls.start({ x: 0 });
     }
-  };
+  }, [controls]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     // Animate out then delete
     controls.start({ height: 0, opacity: 0, marginBottom: 0 }).then(() => {
       onDelete(item.id);
     });
-  };
+  }, [controls, onDelete, item.id]);
 
   return (
     <motion.div 
@@ -993,7 +993,7 @@ const SwipeableItem = ({
           position: 'relative',
           zIndex: 1,
           x: 0,
-          display: 'flex', // Ensure flex layout if needed, though mostly visual
+          display: 'flex',
         }}
       >
         <div style={{ flex: 1, width: '100%' }}>
@@ -1005,7 +1005,7 @@ const SwipeableItem = ({
           position: 'absolute',
           top: 0,
           bottom: 0,
-          right: -100, // Positioned off-screen to the right
+          right: -100,
           width: '100px',
           display: 'flex',
           alignItems: 'center',
@@ -1022,7 +1022,6 @@ const SwipeableItem = ({
               alignItems: 'center',
               gap: '4px',
               cursor: 'pointer',
-              // Add a hit area expansion or ensuring z-index if needed
             }}
           >
             <Trash2 size={20} />
@@ -1032,7 +1031,7 @@ const SwipeableItem = ({
       </motion.div>
     </motion.div>
   );
-};
+});
 
 function LibraryPage() {
   const audio = useAudio();
