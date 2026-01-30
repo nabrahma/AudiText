@@ -769,14 +769,16 @@ function PlayerPage() {
           </p>
         </div>
         
-        {/* Visualizer Area - Flexible */}
-        {/* Visualizer Area - Flexible Spacer */}
-        <div style={{ 
-          flex: 1, // Push controls to bottom
-          minHeight: 0, // Allow shrinking
-          display: 'flex',
-          flexDirection: 'column',
-        }} />
+        {/* Spacer removed - using absolute positioning instead */}
+        
+        {/* Bottom Fixed Controls Section */}
+        <div style={{
+          position: 'absolute',
+          bottom: '32px',
+          left: '24px',
+          right: '24px',
+          zIndex: 10,
+        }}>
         
         {/* Scrub Bar */}
         <div style={{ 
@@ -813,7 +815,7 @@ function PlayerPage() {
           alignItems: 'center', 
           justifyContent: 'center', 
           gap: '16px',
-          marginBottom: '24px',
+          marginBottom: '16px',
           flexShrink: 0,
         }}>
           {/* Share Button */}
@@ -941,6 +943,7 @@ function PlayerPage() {
           >
             {audio.playbackSpeed}x
           </button>
+        </div>
         </div>
         
 
