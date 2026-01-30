@@ -662,14 +662,7 @@ function PlayerPage() {
   const wordCount = audio.content?.word_count || 0;
   const readTime = Math.ceil(wordCount / 200); // ~200 words per minute
   
-  // Helper to check if a chunk should be visually hidden
-  const isHiddenChunk = (chunk: string) => {
-    const clean = chunk.trim();
-    if (!clean) return true;
-    if (/^Title\s*:/i.test(clean)) return true;
-    if (/^Author\s*:/i.test(clean)) return true;
-    return false;
-  }
+
   
   return (
     <div 
