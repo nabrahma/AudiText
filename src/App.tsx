@@ -772,20 +772,15 @@ function PlayerPage() {
         {/* Visualizer Area - Flexible */}
         {/* Visualizer Area - Flexible Spacer */}
         <div style={{ 
-          width: '100%',
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
           flex: 1, // Push controls to bottom
-          marginBottom: '24px',
-          flexShrink: 0,
-        }}>
-            {/* Orb Removed by user request */}
-            <div style={{ height: '180px', width: '180px' }} /> 
-        </div>
+          minHeight: 0, // Allow shrinking
+          display: 'flex',
+          flexDirection: 'column',
+        }} />
         
         {/* Scrub Bar */}
         <div style={{ 
+          marginTop: 'auto', // PROOF: Force to bottom
           marginBottom: '20px',
           padding: '0 8px',
           flexShrink: 0,
