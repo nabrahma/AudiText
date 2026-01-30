@@ -776,11 +776,13 @@ function PlayerPage() {
         </div>
         
         {/* Visualizer Area - Flexible */}
+        {/* Visualizer Area - Flexible Spacer */}
         <div style={{ 
           width: '100%',
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
+          flex: 1, // Push controls to bottom
           marginBottom: '24px',
           flexShrink: 0,
         }}>
@@ -952,52 +954,7 @@ function PlayerPage() {
           </button>
         </div>
         
-        {/* Contents Section - Auto-scrolling */}
-        <div 
-          ref={scrollRef} // Attached ref for auto-scroll
-          className="hide-scrollbar"
-          style={{ 
-            flex: 1, // Take remaining space
-            marginBottom: '20px',
-            background: '#1a1a1a',
-            borderRadius: '24px',
-            border: '1px solid rgba(255,255,255,0.1)',
-            overflowY: 'auto',
-            overflowX: 'hidden',
-            position: 'relative',
-          }} 
-        >
-          {/* Sticky Contents header with fade effect */}
-          <div style={{ 
-            position: 'sticky',
-            top: 0,
-            background: 'linear-gradient(to bottom, #1a1a1a 0%, #1a1a1a 80%, transparent 100%)',
-            padding: '24px 24px 16px 24px',
-            zIndex: 10,
-          }}>
-            <p style={{ 
-              fontSize: '14px', 
-              color: 'rgba(255,255,255,0.4)', 
-              fontFamily: 'Genos, sans-serif',
-              fontWeight: 500,
-              margin: 0,
-            }}>
-              Contents
-            </p>
-          </div>
-          
-          {/* Lyrics/Text Content - with padding for spacing */}
-          <div style={{ 
-            fontSize: '16px', 
-            lineHeight: 1.8,
-            fontFamily: 'Genos, sans-serif',
-            padding: '0 24px 48px 24px', // Extra bottom padding for scroll comfort
-            marginTop: '-8px',
-            color: 'rgba(255,255,255,0.7)',
-            whiteSpace: 'pre-wrap',
-          }}>
-            {audio.nativeChunks.length > 0 ? (
-              audio.nativeChunks.map((chunk, i) => (
+
                 !isHiddenChunk(chunk) && (
                   <p 
                     key={i} 
