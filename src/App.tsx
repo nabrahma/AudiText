@@ -695,10 +695,11 @@ function PlayerPage() {
         zIndex: 2, 
         width: '100%',
         padding: '0 24px 32px 24px',
-        flex: 1, // KEY: Expand to fill remaining space in parent flex column
+        flex: 1,
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
+        overflow: 'hidden', // Prevent scrolling
       }}>
         
         {/* Header - pushed up */}
