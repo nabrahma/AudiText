@@ -667,7 +667,8 @@ function PlayerPage() {
   return (
     <div 
       style={{ 
-        height: '100%', 
+        height: '100dvh', 
+        width: '100vw',
         position: 'relative', 
         background: '#000',
         display: 'flex',
@@ -689,13 +690,13 @@ function PlayerPage() {
         pointerEvents: 'none',
       }} />
       
-      {/* Content Container - Fixed Height for layout */}
+      {/* Content Container - Flex Column to fill 100dvh */}
       <div style={{ 
         position: 'relative', 
         zIndex: 2, 
         width: '100%',
-        padding: '0 24px', 
-        height: '100vh',
+        padding: '0 24px 32px 24px', // Added bottom padding to lift controls/scrub bar up slightly
+        height: '100%', // Fill the parent (100dvh)
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
