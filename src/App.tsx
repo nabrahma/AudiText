@@ -667,9 +667,8 @@ function PlayerPage() {
   return (
     <div 
       style={{ 
-        height: '100%', 
-        width: '100%',
-        position: 'relative', 
+        position: 'absolute',
+        inset: 0, // Fill parent completely (top: 0, right: 0, bottom: 0, left: 0)
         background: '#000',
         display: 'flex',
         flexDirection: 'column',
