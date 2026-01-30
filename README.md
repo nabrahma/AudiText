@@ -49,8 +49,9 @@ Whether you're commuting with a long-form article or multitasking with a Twitter
 
 ### 🎧 Immersive Playback Engine
 - **Native Neural TTS**: Leverages the browser's built-in **Web Speech API** for unlimited, offline-capable speech synthesis without API quotas.
-- **WebGL Audio Visualizer**: A real-time, reactively animated "Orb" that pulses with voice amplitude (built with Three.js & OGL).
+- **Clean Player Interface**: Minimalist, bottom-aligned controls optimized for one-handed mobile use.
 - **Dynamic Speed Control**: Variable playback rates (0.5x - 2.5x) with pitch correction.
+- **Deep Linking & Sharing**: Share articles with `?share=` URL parameters for instant playback.
 
 ### 🛡️ Enterprise-Grade Security
 - **Row Level Security (RLS)**: Database policies strictly enforce data sovereignty—users can *only* access their own library items.
@@ -60,6 +61,13 @@ Whether you're commuting with a long-form article or multitasking with a Twitter
 ### 📱 Premium UX/UI
 - **"Reactive Noir" Aesthetic**: A cohesive design language featuring glassmorphism, adaptive film grain (noise), and procedural gradients.
 - **Mobile-First Progressive Web App (PWA)**: Touch-optimized scrub bars, haptic feedback integration, and 60fps animations on mobile devices.
+- **Interactive DotGrid Background**: GPU-accelerated particle effect with click-to-ripple interaction.
+
+### ⚡ Production-Grade Performance
+- **React.memo Optimization**: All heavy components (DotGrid, Noise, SwipeableItem) are memoized to prevent unnecessary re-renders.
+- **GPU-Accelerated Animations**: CSS animations use `transform: translateZ(0)` and `will-change` hints for buttery 60fps performance.
+- **Spatial Partitioning**: DotGrid uses O(1) spatial grid lookup instead of O(n) for efficient hover detection.
+- **Optimized Bundle**: ~656 KB total (148 KB gzipped) with vendor chunk splitting.
 
 ---
 
@@ -79,7 +87,7 @@ graph TD
     subgraph Backend [Edge Function: extract-content]
         Edge -->|Fetch Raw HTML| Jina[Jina AI Reader]
         Edge -->|Clean Text| AI_Logic{Has Credits?}
-        AI_Logic -->|Yes| OpenRouter[OpenRouter / GPT-4o]
+        AI_Logic -->|Yes| Gemini[Google Gemini 2.0]
         AI_Logic -->|No| Manual[Robust Regex Cleaner]
     end
     
@@ -89,21 +97,11 @@ graph TD
         Components -.-> State
         State -->|Audio Data| Visuals
         subgraph Visuals [Visual Engine]
-             Bits[react-bits / Particles]
-             Orb[Custom HTML5 Canvas Orb]
+             Bits[react-bits / DotGrid]
+             Shimmer[GPU-Accelerated Shimmer]
         end
     end
 ```
-
-## 🎨 The "Vibe Coding" Workflow
-
-AudiText is a case study in **AI-Native Development**. The goal was to bridge the gap between high-fidelity design and functional code in record time.
-
-1.  **Vision First (Figma)**: The entire "Glassmorphism" aesthetic, including the film grain overlays and glowing accents, was designed in Figma first.
-2.  **90% Fidelity Generation**: Figma screenshots were fed directly to AI agents, which generated the React components with pixel-perfect accuracy on the first pass.
-3.  **Modern Enhancements**:
-    *   **`react-bits`**: Used for the subtle particle background effects.
-    *   **Custom Orb**: A hand-tuned HTML5 Canvas visualization (Simplex Noise) that reacts to the browser's audio frequency data.
 
 ---
 
@@ -112,15 +110,16 @@ AudiText is a case study in **AI-Native Development**. The goal was to bridge th
 ### Frontend Core
 | Technology | Role |
 |------------|------|
-| **React 19** | UI Library (using Server Components architecture where applicable) |
+| **React 19** | UI Library with modern hooks architecture |
 | **TypeScript** | Strict static typing for robustness |
 | **Vite** | Next-gen frontend tooling and bundling |
 
 ### Visuals & Animation
 | Technology | Role |
 |------------|------|
-| **Three.js / React-Three-Fiber** | 3D visualizers and WebGL effects |
-| **GSAP (GreenSock)** | Commercial-grade UI animations and transitions |
+| **Framer Motion** | Physics-based UI animations |
+| **GSAP (GreenSock)** | Commercial-grade transitions for DotGrid |
+| **Custom Canvas** | GPU-accelerated DotGrid with spatial partitioning |
 | **Lucide React** | Consistent, lightweight iconography |
 
 ### Backend & Data
@@ -128,7 +127,14 @@ AudiText is a case study in **AI-Native Development**. The goal was to bridge th
 |------------|------|
 | **Supabase (PostgreSQL)** | Relational database with real-time subscriptions |
 | **Supabase Auth** | User management and secure session handling |
+| **Supabase Edge Functions** | Serverless content extraction |
 | **Row Level Security (RLS)** | Database-level access control policies |
+
+### AI Services
+| Technology | Role |
+|------------|------|
+| **Jina AI Reader** | URL to clean Markdown extraction |
+| **Google Gemini 2.0** | Content cleaning and formatting |
 
 ---
 
@@ -152,7 +158,7 @@ AudiText is a case study in **AI-Native Development**. The goal was to bridge th
 
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/yourusername/AudiText.git
+    git clone https://github.com/nabrahma/AudiText.git
     cd AudiText
     ```
 
@@ -181,12 +187,12 @@ AudiText is a case study in **AI-Native Development**. The goal was to bridge th
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Whether it's enhancing the AI parsing logic or adding new WebGL visualizers.
+We welcome contributions from the community! Whether it's enhancing the AI parsing logic or adding new visual effects.
 
 1.  Fork the repository.
-2.  Create a feature branch (`git checkout -b feature/NeuralPolish`).
-3.  Commit your changes with clear messages (`git commit -m 'feat: Enhance deduplication algorithm'`).
-4.  Push to the branch (`git push origin feature/NeuralPolish`).
+2.  Create a feature branch (`git checkout -b feature/EnhancedTTS`).
+3.  Commit your changes with clear messages (`git commit -m 'feat: Add voice selection'`).
+4.  Push to the branch (`git push origin feature/EnhancedTTS`).
 5.  Open a Pull Request.
 
 ---
@@ -197,9 +203,7 @@ The core AudiText experience (Content Extraction + Native Browser TTS) requires 
 | Variable Name | Service | Status | Purpose |
 |---------------|---------|--------|---------|
 | `JINA_API_KEY` | **Jina.ai** | **Required** | Essential for converting raw URLs into clean Markdown. |
-| `OPENROUTER_API_KEY` | **OpenRouter** | *Recommended* | Greatly improves article cleaning and formatting via LLMs. |
-| `ELEVENLABS_API_KEY` | **ElevenLabs** | *Supported* | Enables server-side Neural TTS generation (if you extend the frontend to use it). |
-| `GEMINI_API_KEY` | **Google Gemini** | *Supported* | Alternate fallback for AI cleaning. |
+| `GEMINI_API_KEY` | **Google Gemini** | *Recommended* | Greatly improves article cleaning and formatting. |
 
 ---
 
