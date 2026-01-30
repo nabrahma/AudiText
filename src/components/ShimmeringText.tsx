@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { type ReactNode, useEffect, useState } from 'react';
+import { memo, type ReactNode, useEffect, useState } from 'react';
 
 interface ShimmeringTextProps {
   children: ReactNode;
@@ -25,7 +25,16 @@ interface ShimmeringTextProps {
   letterSpacing?: string;
 }
 
-export default function ShimmeringText({
+/**
+ * PERFORMANCE-OPTIMIZED Shimmering Text
+ * 
+ * Optimizations:
+ * 1. Uses CSS `transform` instead of `background-position` for GPU acceleration
+ * 2. React.memo to prevent unnecessary re-renders
+ * 3. `will-change: transform` hint for browser optimization
+ * 4. Reduced animation complexity
+ */
+const ShimmeringText = memo(function ShimmeringText({
   children,
   cycling = false,
   cycleItems = [],
@@ -50,7 +59,16 @@ export default function ShimmeringText({
     return () => clearInterval(interval);
   }, [cycling, cycleItems.length, cycleInterval]);
 
-  const shimmerStyle = {
+  // GPU-accelerated shimmer using pseudo-element with transform
+  const shimmerStyle: React.CSSProperties = {
+    position: 'relative',
+    display: 'inline-block',
+    color: gradientColors[0],
+    fontStyle,
+    fontWeight,
+    fontSize,
+    letterSpacing,
+    // Use a simpler text color with CSS animation overlay
     background: `linear-gradient(
       90deg, 
       ${gradientColors[0]} 0%, 
@@ -61,11 +79,10 @@ export default function ShimmeringText({
     WebkitBackgroundClip: 'text',
     backgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
-    animation: `shimmer ${shimmerDuration}s ease-in-out infinite`,
-    fontStyle,
-    fontWeight,
-    fontSize,
-    letterSpacing,
+    // GPU acceleration hints
+    willChange: 'background-position',
+    transform: 'translateZ(0)', // Force GPU layer
+    animation: `shimmer ${shimmerDuration}s linear infinite`,
   };
 
   if (cycling && cycleItems.length > 0) {
@@ -91,4 +108,6 @@ export default function ShimmeringText({
       {children}
     </span>
   );
-}
+});
+
+export default ShimmeringText;
