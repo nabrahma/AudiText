@@ -769,6 +769,95 @@ function PlayerPage() {
           </p>
         </div>
         
+        {/* Lyrics/Content Display Section - Premium Centered Design */}
+        <div style={{
+          flex: 1,
+          position: 'relative',
+          overflow: 'hidden',
+          minHeight: '200px',
+        }}>
+          {/* Top Fade Gradient */}
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '80px',
+            background: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%)',
+            zIndex: 10,
+            pointerEvents: 'none',
+          }} />
+          
+          {/* Bottom Fade Gradient */}
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '80px',
+            background: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%)',
+            zIndex: 10,
+            pointerEvents: 'none',
+          }} />
+          
+          {/* Scrollable Lyrics Container */}
+          <div 
+            ref={scrollRef}
+            className="hide-scrollbar"
+            style={{
+              height: '100%',
+              overflowY: 'auto',
+              padding: '60px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: audio.nativeChunks.length > 0 ? 'flex-start' : 'center',
+              gap: '24px',
+            }}
+          >
+            {audio.nativeChunks.length > 0 ? (
+              audio.nativeChunks.map((chunk, index) => {
+                const isActive = index === audio.currentChunkIndex;
+                const isPast = index < audio.currentChunkIndex;
+                
+                return (
+                  <motion.p
+                    key={index}
+                    id={`chunk-${index}`}
+                    initial={{ opacity: 0.3 }}
+                    animate={{ 
+                      opacity: isActive ? 1 : (isPast ? 0.4 : 0.3),
+                      scale: isActive ? 1 : 0.95,
+                    }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    style={{
+                      fontSize: isActive ? '22px' : '18px',
+                      fontWeight: isActive ? 500 : 400,
+                      lineHeight: 1.6,
+                      textAlign: 'center',
+                      maxWidth: '320px',
+                      color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
+                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
+                    {chunk}
+                  </motion.p>
+                );
+              })
+            ) : (
+              <p style={{
+                fontSize: '18px',
+                color: 'rgba(255,255,255,0.4)',
+                fontFamily: 'Genos, sans-serif',
+                textAlign: 'center',
+              }}>
+                Content loading...
+              </p>
+            )}
+          </div>
+        </div>
+        
         {/* Scrub Bar - margin-top:auto pushes to bottom */}
         <div style={{ 
           marginTop: 'auto',
