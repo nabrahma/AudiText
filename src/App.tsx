@@ -652,11 +652,15 @@ function PlayerPage() {
   // Get content info from context, preferring parsed info if main is generic
   const rawTitle = audio.content?.title;
   // Use parsed title if raw is "Untitled" OR if raw is missing
-  const displayTitle = (rawTitle && rawTitle !== 'Untitled') ? rawTitle : (parsedMeta.title || 'Untitled');
+  const fullTitle = (rawTitle && rawTitle !== 'Untitled') ? rawTitle : (parsedMeta.title || 'Untitled');
+  // Truncate title to 50 chars for cleaner display
+  const displayTitle = fullTitle.length > 50 ? fullTitle.slice(0, 47) + '...' : fullTitle;
   
   const rawAuthor = audio.content?.author;
   // Prefer parsed author if available (often better from text), else metadata
-  const displayAuthor = parsedMeta.author || rawAuthor || '';
+  const fullAuthor = parsedMeta.author || rawAuthor || '';
+  // Truncate author to 30 chars - author should be a name, not content
+  const displayAuthor = fullAuthor.length > 30 ? fullAuthor.slice(0, 27) + '...' : fullAuthor;
   
   const source = audio.content?.source || '';
   const wordCount = audio.content?.word_count || 0;

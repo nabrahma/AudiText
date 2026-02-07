@@ -89,16 +89,18 @@ async function cleanWithGemini(rawText: string, apiKey: string): Promise<string 
     Task: Clean the provided raw web extraction.
     
     Rules:
-    1. **Format**: The FIRST LINE must be the Title as a Markdown Header 1. Example: "# Vitalik's thoughts on Ethereum".
-    2. **Format**: The SECOND LINE must be the Author. Example: "Author: Vitalik Buterin".
-    3. **Title Generation**: If the content is a tweet or status update without a clear title, generate a short, descriptive title like "[Author]'s Tweet about [Topic]".
-    4. Extract ONLY the main article body or Social Media Post. 
-    5. Remove sidebars, navigation, "Published on", "Read time", "Share", footer text.
-    6. **CRITICAL**: If this is a Twitter/X or Social Media post, IGNORE "Login", "Sign Up", "See new posts" text. SEARCH for the actual user post/tweet content. It might be buried in the text.
-    7. Remove all Markdown images, links, and code blocks.
-    8. Remove URLs.
-    9. Fix spacing.
-    10. Only return "ERROR: Content unreadable" if there is ABSOLUTELY NO article/post content found.
+    1. **TITLE (Line 1)**: Must be a Markdown H1. Keep it SHORT (max 50 chars). 
+       - For tweets: "# [Author]'s Tweet on [Topic]" (e.g. "# Elon's Tweet on Mars")
+       - For articles: "# [Short Title]"
+    2. **AUTHOR (Line 2)**: Just the person's name/handle. Example: "Author: Vitalik Buterin"
+       - Do NOT include their bio or tweet content here
+       - If unknown, write "Author: Unknown"
+    3. Extract ONLY the main article body or Social Media Post content.
+    4. Remove all UI elements: navigation, "Read time", "Share", sidebar, footer.
+    5. **CRITICAL for Twitter/X**: IGNORE all login prompts, "Sign Up", "See new posts" text. 
+       Find and extract the ACTUAL tweet content.
+    6. Remove Markdown images, links, code blocks, and URLs.
+    7. Only return "ERROR: Content unreadable" if there is NO readable content.
     
     Raw Text:
     ${rawText.slice(0, 30000)}
