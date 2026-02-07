@@ -82,7 +82,8 @@ const AudioContext = createContext<AudioContextType | null>(null)
 export function AudioProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AudioState>(loadStateFromStorage)
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
-  const nativeTimerRef = useRef<number | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
+  const lastUpdateTimeRef = useRef<number>(0)
   const isManualCancel = useRef(false)
   
   // Persist state changes
@@ -98,16 +99,34 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(saveState)
   }, [state])
   
-  // Timer to simulate progress updates for native TTS
-  const startNativeTimer = () => {
-    if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
-    nativeTimerRef.current = window.setInterval(() => {
+  // Smooth 60fps animation frame timer for progress updates
+  const startProgressAnimation = () => {
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
+    lastUpdateTimeRef.current = performance.now()
+    
+    const animate = () => {
+      const now = performance.now()
+      const delta = (now - lastUpdateTimeRef.current) / 1000 // Convert to seconds
+      lastUpdateTimeRef.current = now
+      
       setState(prev => {
         if (!prev.isPlaying) return prev
-        const newTime = prev.currentTime + (0.1 * prev.playbackSpeed)
-        return { ...prev, currentTime: Math.min(newTime, prev.duration) }
+        const increment = delta * prev.playbackSpeed
+        const newTime = Math.min(prev.currentTime + increment, prev.duration)
+        return { ...prev, currentTime: newTime }
       })
-    }, 100)
+      
+      animationFrameRef.current = requestAnimationFrame(animate)
+    }
+    
+    animationFrameRef.current = requestAnimationFrame(animate)
+  }
+  
+  const stopProgressAnimation = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
+    }
   }
   
   // Clean text and split into chunks
@@ -194,7 +213,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel()
-      if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
+      stopProgressAnimation()
     }
   }, [])
 
@@ -215,7 +234,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
   const processUrl = async (url: string) => {
     window.speechSynthesis.cancel()
-    if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
+    stopProgressAnimation()
     
     setState(prev => ({ 
       ...initialState, 
@@ -288,7 +307,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       return { ...p, currentChunkIndex: index, currentTime: progress }
     })
     
-    startNativeTimer()
+    startProgressAnimation()
   }
 
 
@@ -356,7 +375,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         return { ...prev, currentChunkIndex: nextIdx }
       } else {
         // Finished!
-        if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
+        stopProgressAnimation()
         
         // SAVE PROGRESS 100%
         if (prev.itemId) {
@@ -386,7 +405,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         }
         return { ...p, isPlaying: false }
     })
-    if (nativeTimerRef.current) clearInterval(nativeTimerRef.current)
+    stopProgressAnimation()
     window.speechSynthesis.pause() 
   }
 

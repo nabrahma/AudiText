@@ -575,6 +575,14 @@ function PlayerPage() {
   const currentTime = audio.currentTime;
   const totalDuration = audio.duration || 180; // Default to 3 mins if not loaded
   
+  // DEBUG: Log nativeChunks to console
+  console.log('🎵 PlayerPage Debug:', {
+    nativeChunksLength: audio.nativeChunks?.length || 0,
+    currentChunkIndex: audio.currentChunkIndex,
+    isPlaying: audio.isPlaying,
+    firstChunk: audio.nativeChunks?.[0]?.slice(0, 50) || 'EMPTY',
+  });
+  
   // Speed cycle: 1 -> 1.25 -> 1.5 -> 2 -> 1
   const cycleSpeed = () => {
     const speeds = [1, 1.25, 1.5, 2];
