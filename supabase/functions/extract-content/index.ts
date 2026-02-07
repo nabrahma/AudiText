@@ -81,8 +81,8 @@ async function cleanWithOpenRouter(rawText: string, apiKey: string): Promise<str
 
 // Clean content using Google Gemini (Direct)
 async function cleanWithGemini(rawText: string, apiKey: string): Promise<string | null> {
-  // Use gemini-2.0-flash-exp (Newest, Free/Cheap, Fast) via v1beta
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`
+  // Use gemini-2.0-flash (stable, fast) via v1beta
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
   
   const prompt = `
     You are an expert editor preparing text for Audio Reading (Text-to-Speech).
