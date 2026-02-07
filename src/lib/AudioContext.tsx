@@ -165,15 +165,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     if (authorPattern.test(text)) {
         text = text.replace(authorPattern, '').trim()
     }
-    
-    // 4. Construct Smart Intro
-    // Only verify if we need to add it.
-    const intro = `${title}.` + (author !== 'Unknown' ? ` By ${author}.` : '')
-    
-    // If text doesn't start with the intro (roughly), prepend it.
-    if (!text.startsWith(title)) {
-        text = `${intro}\n\n${text}`
-    }
+    // 4. Remove "Author: X" lines if present at start
+    text = text.replace(/^Author:\s*.+\n*/i, '').trim()
 
     // 5. Clean up multiple newlines/spaces
     text = text.replace(/\n{3,}/g, '\n\n').trim()
@@ -249,8 +242,8 @@ export function AudioProvider({ children }: { children: ReactNode }) {
 
       // Start Native TTS
       const chunks = prepareChunks(content)
-      // Duration estimate: ~3 words/sec seems reasonable
-      const totalDuration = chunks.reduce((acc, chunk) => acc + (chunk.split(' ').length / 3), 0)
+      // Duration estimate: ~2 words/sec is closer to TTS actual speed
+      const totalDuration = chunks.reduce((acc, chunk) => acc + (chunk.split(' ').length / 2), 0)
 
       setState(prev => ({ 
         ...prev, 
@@ -334,10 +327,9 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     // 1. Clean Text
     const chunks = prepareChunks(content)
     
-    // 2. Estimate Duration (roughly 150 words per minute -> 2.5 words per sec)
-    // Average sentence/chunk is ~10-15 words?
-    // Let's rely on chunk count for simple progress.
-    const duration = chunks.length * 5 // Arbitrary 5s per chunk for UI slider
+    // 2. Estimate Duration: ~2 words/sec for TTS at 1x speed
+    const totalWords = chunks.reduce((acc, chunk) => acc + chunk.split(' ').length, 0)
+    const duration = totalWords / 2 // ~120 words per minute = 2 words/sec
 
     setState(_ => ({
       ...initialState, // Reset other fields

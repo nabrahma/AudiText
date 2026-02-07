@@ -788,26 +788,26 @@ function PlayerPage() {
           overflow: 'hidden',
           minHeight: '200px',
         }}>
-          {/* Top Fade Gradient */}
+          {/* Top Fade Gradient - subtle */}
           <div style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
-            height: '80px',
-            background: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%)',
+            height: '60px',
+            background: 'linear-gradient(to bottom, rgba(18,18,18,0.95) 0%, rgba(18,18,18,0) 100%)',
             zIndex: 10,
             pointerEvents: 'none',
           }} />
           
-          {/* Bottom Fade Gradient */}
+          {/* Bottom Fade Gradient - subtle */}
           <div style={{
             position: 'absolute',
             bottom: 0,
             left: 0,
             right: 0,
-            height: '80px',
-            background: 'linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%)',
+            height: '60px',
+            background: 'linear-gradient(to top, rgba(18,18,18,0.95) 0%, rgba(18,18,18,0) 100%)',
             zIndex: 10,
             pointerEvents: 'none',
           }} />
@@ -819,12 +819,12 @@ function PlayerPage() {
             style={{
               height: '100%',
               overflowY: 'auto',
-              padding: '60px 16px',
+              padding: '40px 16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: audio.nativeChunks.length > 0 ? 'flex-start' : 'center',
-              gap: '24px',
+              gap: '12px',
             }}
           >
             {audio.nativeChunks.length > 0 ? (
@@ -843,12 +843,12 @@ function PlayerPage() {
                     }}
                     transition={{ duration: 0.3, ease: 'easeOut' }}
                     style={{
-                      fontSize: isActive ? '22px' : '18px',
+                      fontSize: isActive ? '16px' : '14px',
                       fontWeight: isActive ? 500 : 400,
-                      lineHeight: 1.6,
+                      lineHeight: 1.5,
                       textAlign: 'center',
-                      maxWidth: '320px',
-                      color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
+                      maxWidth: '300px',
+                      color: isActive ? '#fff' : (isPast ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)'),
                       fontFamily: 'system-ui, -apple-system, sans-serif',
                       transition: 'all 0.3s ease',
                     }}
