@@ -747,26 +747,26 @@ function PlayerPage() {
           overflow: 'hidden',
           minHeight: '200px',
         }}>
-          {/* Top Fade Gradient - subtle */}
+          {/* Top Fade Gradient - Match pure black background */}
           <div style={{
             position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
-            height: '60px',
-            background: 'linear-gradient(to bottom, rgba(18,18,18,0.95) 0%, rgba(18,18,18,0) 100%)',
+            height: '80px', // Taller fade for bigger text
+            background: 'linear-gradient(to bottom, #000 0%, transparent 100%)',
             zIndex: 10,
             pointerEvents: 'none',
           }} />
           
-          {/* Bottom Fade Gradient - subtle */}
+          {/* Bottom Fade Gradient - Match pure black background */}
           <div style={{
             position: 'absolute',
             bottom: 0,
             left: 0,
             right: 0,
-            height: '60px',
-            background: 'linear-gradient(to top, rgba(18,18,18,0.95) 0%, rgba(18,18,18,0) 100%)',
+            height: '80px', // Taller fade for bigger text
+            background: 'linear-gradient(to top, #000 0%, transparent 100%)',
             zIndex: 10,
             pointerEvents: 'none',
           }} />
@@ -802,14 +802,15 @@ function PlayerPage() {
                     }}
                     transition={{ duration: 0.3, ease: 'easeOut' }}
                     style={{
-                      fontSize: isActive ? '16px' : '14px',
-                      fontWeight: isActive ? 500 : 400,
-                      lineHeight: 1.5,
+                      fontSize: isActive ? '28px' : '20px', // MUCH bigger as requested
+                      fontWeight: isActive ? 600 : 400,
+                      lineHeight: 1.4,
                       textAlign: 'center',
-                      maxWidth: '300px',
-                      color: isActive ? '#fff' : (isPast ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.5)'),
-                      fontFamily: 'system-ui, -apple-system, sans-serif',
+                      maxWidth: '340px', // Wider to fit bigger text
+                      color: isActive ? '#fff' : (isPast ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.4)'), // Darker inactive for contrast
+                      fontFamily: 'Funnel Display, sans-serif', // Use the premium font
                       transition: 'all 0.3s ease',
+                      marginBottom: '16px', // More breathing room
                     }}
                   >
                     {chunk}
