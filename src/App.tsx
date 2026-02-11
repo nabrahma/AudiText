@@ -156,7 +156,7 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
   const hasCalledOnVisit = useRef(false);
   const audio = useAudio();
   
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  // Toast logic removed per user request for silent errors
   
   useEffect(() => {
     if (!hasCalledOnVisit.current) {
@@ -166,11 +166,6 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
   }, [onVisit]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
   
   /* SECURITY: Input Validation Constants */
   const MAX_URL_LENGTH = 2048;
@@ -236,17 +231,17 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
             is_archived: false,
             audio_url: null,
           });
-          showToast('Saved to Library');
+          // Saved silently
         } catch (saveError) {
           console.error('Failed to save to library', saveError);
-          showToast('Could not save to Library (Auth)', 'error');
         }
       }
       
       // Navigate to player once done
       navigate('/player');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process URL');
+      console.error('Processing Error:', err);
+      // Silent fail - user checks F12
     }
   };
   
@@ -257,30 +252,7 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
       style={{ height: '100dvh', position: 'relative', background: '#000', overflow: 'hidden' }}
     >
       {/* Toast Notification */}
-      {toast && (
-        <motion.div
-           initial={{ opacity: 0, y: -20 }}
-           animate={{ opacity: 1, y: 0 }}
-           exit={{ opacity: 0, y: -20 }}
-           style={{
-             position: 'fixed',
-             top: '100px',
-             left: '50%',
-             transform: 'translateX(-50%)',
-             background: toast.type === 'success' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(248, 113, 113, 0.2)',
-             border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#F87171'}`,
-             color: toast.type === 'success' ? '#4ADE80' : '#F87171',
-             padding: '8px 16px',
-             borderRadius: '20px',
-             fontSize: '13px',
-             fontFamily: 'Funnel Display, sans-serif',
-             zIndex: 100,
-             backdropFilter: 'blur(8px)',
-           }}
-        >
-          {toast.message}
-        </motion.div>
-      )}
+      {/* Toast Notification Removed per user request */}
 
 
       
@@ -525,20 +497,7 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
           </button>
           
           {/* Error message */}
-          {error && (
-            <p style={{ 
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              width: '100%',
-              color: '#f87171', 
-              fontSize: '14px', 
-              textAlign: 'center',
-              paddingTop: '12px',
-            }}>
-              {error}
-            </p>
-          )}
+          {/* Error message removed per user request */}
           
           {/* Loading notification */}
           {isLoading && !error && (

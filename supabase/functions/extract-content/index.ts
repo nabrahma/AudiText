@@ -32,19 +32,21 @@ async function cleanWithOpenRouter(rawText: string, apiKey: string): Promise<str
     Task: Clean the provided raw web extraction.
     
     Rules:
-    1. **Format**: The FIRST LINE must be the Title as a Markdown Header 1. Example: "# Vitalik's thoughts on Ethereum".
-    2. **Format**: The SECOND LINE must be the Author. Example: "Author: Vitalik Buterin".
-    3. **Title Generation**: If the content is a tweet or status update without a clear title, generate a short, descriptive title like "[Author]'s Tweet about [Topic]".
-    4. Extract ONLY the main article body or Social Media Post. 
-    5. Remove sidebars, navigation, "Published on", "Read time", "Share", footer text.
-    6. **CRITICAL**: If this is a Twitter/X or Social Media post, IGNORE "Login", "Sign Up", "See new posts" text. SEARCH for the actual user post/tweet content. It might be buried in the text.
-    7. Remove all Markdown images, links, and code blocks.
-    8. Remove URLs.
-    9. Fix spacing.
-    10. Only return "ERROR: Content unreadable" if there is ABSOLUTELY NO article/post content found (e.g. only a Login form).
+    1. **TITLE (Line 1)**: Must be a Markdown H1. Keep it SHORT (max 50 chars). 
+       - For tweets: "# [Author]'s Tweet on [Topic]" (e.g. "# Elon's Tweet on Mars")
+       - For articles: "# [Short Title]"
+    2. **AUTHOR (Line 2)**: Just the person's name/handle. Example: "Author: Vitalik Buterin"
+       - Do NOT include their bio or tweet content here
+       - If unknown, write "Author: Unknown"
+    3. Extract ONLY the main article body or Social Media Post content.
+    4. Remove all UI elements: navigation, "Read time", "Share", sidebar, footer.
+    5. **CRITICAL for Twitter/X**: IGNORE all login prompts, "Sign Up", "See new posts" text. 
+       Find and extract the ACTUAL tweet content.
+    6. Remove Markdown images, links, code blocks, and URLs.
+    7. Only return "ERROR: Content unreadable" if there is NO readable content.
     
     Raw Text:
-    ${rawText.slice(0, 20000)}
+    ${rawText.slice(0, 30000)}
   `
 
   try {
@@ -81,9 +83,6 @@ async function cleanWithOpenRouter(rawText: string, apiKey: string): Promise<str
 
 // Clean content using Google Gemini (Direct)
 async function cleanWithGemini(rawText: string, apiKey: string): Promise<string | null> {
-  // Use gemini-2.0-flash (stable, fast) via v1beta
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`
-  
   const prompt = `
     You are an expert editor preparing text for Audio Reading (Text-to-Speech).
     Task: Clean the provided raw web extraction.
@@ -106,32 +105,49 @@ async function cleanWithGemini(rawText: string, apiKey: string): Promise<string 
     ${rawText.slice(0, 30000)}
   `
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 8192
+  // Helper to try a specific model
+  const tryModel = async (modelName: string) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`
+    try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 8192
+            }
+          })
+        })
+        
+        if (!response.ok) {
+            const errText = await response.text()
+            console.warn(`Gemini ${modelName} Error:`, response.status, errText)
+            return null
         }
-      })
-    })
-
-    if (!response.ok) {
-      const errText = await response.text()
-      console.error('Gemini API Error:', response.status, errText)
-      return `ERROR: Gemini API Error: ${response.status} - ${errText}`
+        
+        const data = await response.json()
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || null
+    } catch (e) {
+        console.warn(`Gemini ${modelName} Exception:`, e)
+        return null
     }
-
-    const data = await response.json()
-    const cleanText = data.candidates?.[0]?.content?.parts?.[0]?.text
-    return cleanText || "ERROR: Gemini returned empty content"
-  } catch (e) {
-    console.error('Gemini Call Failed:', e)
-    return `ERROR: Gemini Call Failed: ${String(e)}`
   }
+
+  // 1. Try gemini-2.0-flash (Newest, Fast)
+  let result = await tryModel('gemini-2.0-flash')
+  if (result) return result
+
+  // 2. Fallback to gemini-1.5-flash (Stable, Fast)
+  console.log('Falling back to gemini-1.5-flash...')
+  result = await tryModel('gemini-1.5-flash')
+  if (result) return result
+  
+  // 3. Last resort: gemini-1.5-pro (More capable but slower/expensive - use caution/skip if heavy)
+  // Skipping pro to save latency/cost, 1.5-flash should handle it if 2.0 failed.
+
+  return "ERROR: Gemini cleaning failed (all models)"
 }
 
 function detectPlatform(url: string): { source: string; platform: string } {
