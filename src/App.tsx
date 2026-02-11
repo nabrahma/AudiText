@@ -640,7 +640,7 @@ function PlayerPage() {
       style={{ 
         position: 'absolute',
         inset: 0, // Fill parent completely (top: 0, right: 0, bottom: 0, left: 0)
-        background: '#000',
+        background: '#050505',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -754,7 +754,7 @@ function PlayerPage() {
             left: 0,
             right: 0,
             height: '80px', // Taller fade for bigger text
-            background: 'linear-gradient(to bottom, #000 0%, transparent 100%)',
+            background: 'linear-gradient(to bottom, #050505 0%, transparent 100%)',
             zIndex: 10,
             pointerEvents: 'none',
           }} />
@@ -766,7 +766,7 @@ function PlayerPage() {
             left: 0,
             right: 0,
             height: '80px', // Taller fade for bigger text
-            background: 'linear-gradient(to top, #000 0%, transparent 100%)',
+            background: 'linear-gradient(to top, #050505 0%, transparent 100%)',
             zIndex: 10,
             pointerEvents: 'none',
           }} />
