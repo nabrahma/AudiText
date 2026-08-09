@@ -76,6 +76,9 @@ const DotGrid: React.FC<DotGridProps> = ({
   const rafRef = useRef<number>(0);
   const pointerRef = useRef({ x: -1000, y: -1000, active: false });
   const cellSizeRef = useRef(proximity); // Spatial grid cell size
+  const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const canvasSizeRef = useRef({ width: 0, height: 0 });
+  const settledRef = useRef(false); // True once the grid is idle and repainting is pointless
 
   const baseRgb = useMemo(() => hexToRgb(baseColor), [baseColor]);
   const activeRgb = useMemo(() => hexToRgb(activeColor), [activeColor]);
@@ -164,7 +167,10 @@ const DotGrid: React.FC<DotGridProps> = ({
     canvas.style.height = `${height}px`;
     
     const ctx = canvas.getContext('2d', { alpha: true })!;
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctxRef.current = ctx;
+    canvasSizeRef.current = { width, height };
+    settledRef.current = false;
 
     // Create base dot sprite
     dotSpriteRef.current = createDotSprite(baseColor, dotSize);
@@ -215,23 +221,29 @@ const DotGrid: React.FC<DotGridProps> = ({
     const frameInterval = 1000 / targetFPS;
 
     const render = (timestamp: number) => {
+      rafRef.current = requestAnimationFrame(render);
+
       // Frame rate limiting
-      const delta = timestamp - lastTime;
-      if (delta < frameInterval * 0.9) {
-        rafRef.current = requestAnimationFrame(render);
-        return;
-      }
+      if (timestamp - lastTime < frameInterval * 0.9) return;
       lastTime = timestamp;
 
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d', { alpha: true });
+      // Cached in a ref by buildGrid - re-acquiring the context and measuring the
+      // canvas every frame was pure overhead.
+      const ctx = ctxRef.current;
+      const size = canvasSizeRef.current;
       if (!ctx) return;
 
-      const { width, height } = canvas.getBoundingClientRect();
-      ctx.clearRect(0, 0, width, height);
-
       const { x: px, y: py, active } = pointerRef.current;
+
+      // Nothing moving and no cursor nearby: skip the whole repaint.
+      const anyMoving = dotsRef.current.some(
+        d => d.xOffset !== d.targetXOffset || d.yOffset !== d.targetYOffset
+      );
+      if (!active && !anyMoving && settledRef.current) return;
+      settledRef.current = !active && !anyMoving;
+
+      ctx.clearRect(0, 0, size.width, size.height);
+
       const proxSq = proximity * proximity;
       const spriteSize = dotSpriteRef.current?.width || dotSize;
       const halfSprite = spriteSize / 2;
@@ -241,7 +253,7 @@ const DotGrid: React.FC<DotGridProps> = ({
         if (dot.xOffset !== dot.targetXOffset || dot.yOffset !== dot.targetYOffset) {
           dot.xOffset = lerp(dot.xOffset, dot.targetXOffset, returnSpeed);
           dot.yOffset = lerp(dot.yOffset, dot.targetYOffset, returnSpeed);
-          
+
           // Snap to target if close enough
           if (Math.abs(dot.xOffset - dot.targetXOffset) < 0.1) dot.xOffset = dot.targetXOffset;
           if (Math.abs(dot.yOffset - dot.targetYOffset) < 0.1) dot.yOffset = dot.targetYOffset;
@@ -267,23 +279,38 @@ const DotGrid: React.FC<DotGridProps> = ({
           ctx.drawImage(sprite, drawX - halfSprite, drawY - halfSprite);
         }
       }
-
-      rafRef.current = requestAnimationFrame(render);
     };
 
-    rafRef.current = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(rafRef.current);
+    const start = () => {
+      if (!rafRef.current) rafRef.current = requestAnimationFrame(render);
+    };
+    const stop = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') stop();
+      else start();
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    start();
+
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [proximity, dotSize, returnSpeed, getColoredSprite]);
 
   // Build grid on mount and resize
   useEffect(() => {
     buildGrid();
-    let ro: ResizeObserver | null = null;
-    if ('ResizeObserver' in window) {
-      ro = new ResizeObserver(buildGrid);
-      wrapperRef.current && ro.observe(wrapperRef.current);
-    }
-    return () => ro?.disconnect();
+    if (!('ResizeObserver' in window)) return;
+
+    const observer = new ResizeObserver(buildGrid);
+    const wrapper = wrapperRef.current;
+    if (wrapper) observer.observe(wrapper);
+    return () => observer.disconnect();
   }, [buildGrid]);
 
   // Mouse/click handlers with spatial partitioning

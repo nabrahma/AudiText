@@ -22,8 +22,11 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          motion: ['framer-motion'],
           ui: ['lucide-react'],
+          supabase: ['@supabase/supabase-js'],
+          // gsap is only pulled in by the desktop-only DotGrid, which is lazy-loaded.
         }
       }
     }

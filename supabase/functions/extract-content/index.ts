@@ -324,32 +324,26 @@ serve(async (req) => {
        }
     }
 
-    // DEBUG: If AI failed, append error to content so user sees it
+    // A failed AI clean is a server-side concern. It used to be prepended to the
+    // article body, which meant the player read "SYSTEM: AI Cleaning Failed" aloud.
     if (!isAiCleaned && lastError) {
-        finalContent = `[SYSTEM: AI Cleaning Failed - ${lastError?.substring(0, 100)}... Using Fallback]\n\n${finalContent}`
+      console.warn(`AI cleaning failed (provider: ${usedProvider ?? 'none'}), serving raw extraction:`, lastError)
     }
 
     // 4. Parse Metadata
     const { source, platform } = detectPlatform(url)
-    const title = extractTitle(isAiCleaned ? finalContent : rawContent) 
+    const title = extractTitle(isAiCleaned ? finalContent : rawContent)
     const word_count = countWords(finalContent)
 
-    const response: ExtractResponse & { debug_info?: any } = {
+    const response: ExtractResponse = {
       title,
-      content: finalContent, 
+      content: finalContent,
       cleaned_content: isAiCleaned ? finalContent : undefined,
       source,
       platform,
       word_count,
       ai_cleaned: isAiCleaned,
-      debug_info: {
-        has_jina_key: !!jinaApiKey,
-        has_gemini_key: !!geminiApiKey,
-        has_openrouter_key: !!openRouterApiKey,
-        active_provider: usedProvider,
-        last_error: lastError,
-        is_ai_cleaned: isAiCleaned
-      }
+      // No debug_info: it told every caller which provider keys are configured.
     }
 
     return new Response(JSON.stringify(response), { 

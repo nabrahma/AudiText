@@ -1,5 +1,6 @@
 /* Audiext Design System - Refined */
-@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@300;400;500;600;700;800&family=Genos:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+/* Fonts are loaded from index.html with preconnect - an @import here would block
+   the stylesheet, and with it the first paint, on a third-party round trip. */
 
 @import "tailwindcss";
 
@@ -319,8 +320,58 @@ input[type="range"]::-moz-range-thumb:hover {
   display: none; /* Chrome, Safari, Opera */
 }
 
+/* Library list scrollbar - thin, only visible on hover */
+.library-list-content {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+  overscroll-behavior: contain;
+}
+
+.library-list-content:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.library-list-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.library-list-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.library-list-content::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.library-list-content:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Spin animation for loading spinner */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* `.spin` was referenced by the library loader but never defined, so it sat still. */
+.spin {
+  animation: spin 1s linear infinite;
+  transform-origin: center;
+}
+
+/* Respect the OS "reduce motion" setting: kill the decorative loops, keep spinners
+   (they communicate that work is happening) at a calmer pace. */
+@media (prefers-reduced-motion: reduce) {
+  .shine-pill::before,
+  .shine-stroke::before,
+  .shine-fill {
+    animation: none;
+  }
+
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+  }
 }

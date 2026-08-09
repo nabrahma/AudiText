@@ -1,4 +1,3 @@
-import DotGrid from '@/components/DotGrid';
 import { BookOpenTextIcon } from '@/components/icons/BookOpenTextIcon';
 import { HouseIcon } from '@/components/icons/HouseIcon';
 import { SettingsIcon } from '@/components/icons/SettingsIcon';
@@ -8,10 +7,10 @@ import { ScrubBar } from '@/components/ScrubBar';
 import ShimmeringText from '@/components/ShimmeringText';
 import { ScrubBarContainer, ScrubBarProgress, ScrubBarThumb, ScrubBarTimeLabel, ScrubBarTrack } from '@/components/ui/scrub-bar';
 import { addToLibrary, clearLibrary, deleteLibraryItem, getLibraryItems, toggleFavorite, type LibraryItem } from '@/lib/api';
-import { AudioProvider, useAudio } from '@/lib/AudioContext';
+import { AudioProvider, MAX_SPEED, MIN_SPEED, useAudio, useAudioTime } from '@/lib/AudioContext';
 import { AnimatePresence, motion, useAnimation, type PanInfo } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Loader2, LogOut, Pause, Play, Share2, SkipBack, SkipForward, Sparkles, Trash2 } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { PullToRefresh } from './components/PullToRefresh';
 import './index.css';
@@ -19,9 +18,38 @@ import './index.css';
 import { supabase } from '@/lib/supabase';
 import { AuthPage } from './AuthPage';
 
+// Desktop-only decoration. Lazy so mobile users never download it (or gsap).
+const DotGrid = lazy(() => import('@/components/DotGrid'));
 
 
 
+
+
+const MAX_URL_LENGTH = 2048;
+
+/**
+ * Accept what a person would actually paste ("x.com/foo", "https://…") and hand the
+ * backend a canonical absolute URL. Returns null when the input is not a web link.
+ *
+ * Note: this is a usability guard, not a security boundary - the edge function is
+ * what actually fetches the URL and is where SSRF/host allow-listing belongs.
+ */
+function normalizeUrl(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed || trimmed.length > MAX_URL_LENGTH) return null;
+
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+  try {
+    const parsed = new URL(withScheme);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    // Require a real dotted hostname so typos don't get sent to the extractor.
+    if (!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i.test(parsed.hostname)) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
 
 // ==================== ROTATING WORD CAROUSEL ====================
 const ROTATING_WORDS = ['Tweets', 'Articles', 'Blogs', 'News', 'Threads', 'Posts'];
@@ -166,19 +194,15 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
   }, [onVisit]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  
-  /* SECURITY: Input Validation Constants */
-  const MAX_URL_LENGTH = 2048;
-  const URL_REGEX = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?(\?.*)?$/;
-  const SQL_INJECTION_REGEX = /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER)\b)|(['"])/i;
 
   const handleListen = async () => {
-    if (!url.trim()) return;
-    
+    const raw = url.trim();
+    if (!raw || audio.isExtracting) return;
+
     // DEV BYPASS: Quick Player Check
     // TODO: REMOVE BEFORE PRODUCTION (Internal Testing Only)
     // -----------------------------------------------------
-    if (url.toLowerCase() === 'test' || url.toLowerCase() === 'debug') {
+    if (raw.toLowerCase() === 'test' || raw.toLowerCase() === 'debug') {
       audio.playContent({
         title: "Test Article",
         content: "This is a test article for development purposes. It allows you to verify the player functionality without extracting real content from the web. This saves time and API usage during debugging.",
@@ -190,36 +214,24 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
       navigate('/player');
       return;
     }
-    
+
     setError(null);
-    
-    // SECURITY 1: Length Check
-    if (url.length > MAX_URL_LENGTH) {
-        setError('URL is too long. Please use a valid link.');
-        return;
-    }
 
-    // SECURITY 2: Strict URL Format
-    if (!URL_REGEX.test(url)) {
-        setError('Invalid URL format. Please enter a valid http/https link.');
-        return;
-    }
-
-    // SECURITY 3: Basic Injection Defense
-    if (SQL_INJECTION_REGEX.test(url)) {
-        setError('Suspicious input detected.');
-        return;
+    const normalized = normalizeUrl(raw);
+    if (!normalized) {
+      setError('That does not look like a valid web link.');
+      return;
     }
 
     try {
-      // Start processing - this will extract content and generate audio
-      const content = await audio.processUrl(url); // Now returns content
-      
-      // Save to Library (Auto-save)
+      // Extract the article, then start speaking it
+      const content = await audio.processUrl(normalized);
+
+      // Auto-save to the library (best effort - guests have nowhere to save to)
       if (content) {
         try {
           await addToLibrary({
-            url,
+            url: normalized,
             title: content.title || 'Untitled',
             content: content.content,
             author: content.author || 'Unknown',
@@ -231,36 +243,26 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
             is_archived: false,
             audio_url: null,
           });
-          // Saved silently
         } catch (saveError) {
           console.error('Failed to save to library', saveError);
         }
       }
-      
-      // Navigate to player once done
+
       navigate('/player');
     } catch (err) {
       console.error('Processing Error:', err);
-      // Silent fail - user checks F12
+      setError(err instanceof Error ? err.message : 'Could not read that link. Try another one.');
     }
   };
-  
+
   const isLoading = audio.isExtracting;
   
   return (
     <div
       style={{ height: '100dvh', position: 'relative', background: '#000', overflow: 'hidden' }}
     >
-      {/* Toast Notification */}
-      {/* Toast Notification Removed per user request */}
+      {/* Grain is rendered once globally in AppLayout - see the note there. */}
 
-
-      
-      {/* Noise Overlay */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <Noise patternAlpha={15} patternSize={100} />
-      </div>
-      
       {/* Gradient fade to black at top */}
       <div style={{
         position: 'fixed',
@@ -448,7 +450,10 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
             type="url"
             placeholder="Paste Your Link Here"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              if (error) setError(null); // Don't leave a stale error under a new link
+            }}
             onKeyDown={(e) => e.key === 'Enter' && handleListen()}
             style={{
               width: '100%',
@@ -491,29 +496,28 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
             }}
           >
             {isLoading && (
-              <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
+              <Loader2 size={18} className="spin" />
             )}
-            {audio.isExtracting ? 'Extracting...' : 'Start Listening'}
+            {isLoading ? 'Extracting...' : 'Start Listening'}
           </button>
-          
-          {/* Error message */}
-          {/* Error message removed per user request */}
-          
-          {/* Loading notification */}
-          {isLoading && !error && (
-            <p style={{ 
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              width: '100%',
-              color: 'rgba(255,255,255,0.5)', 
-              fontSize: '13px', 
-              textAlign: 'center',
-              paddingTop: '12px',
-            }}>
-              {audio.isExtracting 
-                ? 'Processing content...' 
-                : 'Preparing audio...'}
+
+          {/* Status line: errors used to fail silently, which read as "nothing happens". */}
+          {(isLoading || error) && (
+            <p
+              role={error ? 'alert' : 'status'}
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                width: '100%',
+                color: error ? 'rgba(248,113,113,0.9)' : 'rgba(255,255,255,0.5)',
+                fontSize: '13px',
+                textAlign: 'center',
+                paddingTop: '12px',
+                fontFamily: 'Funnel Display, sans-serif',
+              }}
+            >
+              {isLoading ? 'Processing content...' : error}
             </p>
           )}
         </div>
@@ -524,117 +528,234 @@ function HomePage({ onVisit }: { onVisit: () => void }) {
 }
 
 // ==================== PLAYER PAGE ====================
+
+/**
+ * Karaoke-style transcript.
+ *
+ * Deliberately plain DOM: this list can be several hundred paragraphs long, and one
+ * framer-motion node per line meant hundreds of animation instances re-evaluating on
+ * every playback tick. Opacity/scale via CSS transitions gets the same look for free,
+ * and `scale` (rather than a font-size change) keeps the active line off the layout path.
+ */
+const Lyrics = React.memo(function Lyrics({
+  chunks,
+  activeIndex,
+}: {
+  chunks: string[];
+  activeIndex: number;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Keep the active line parked ~30% down the viewport, Spotify style.
+  useEffect(() => {
+    const container = scrollRef.current;
+    const activeEl = container?.querySelector<HTMLElement>(`[data-chunk="${activeIndex}"]`);
+    if (!container || !activeEl) return;
+
+    const relativeTop = activeEl.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    const targetScroll = container.scrollTop + relativeTop - container.clientHeight * 0.3;
+    const jumpDistance = Math.abs(targetScroll - container.scrollTop);
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    container.scrollTo({
+      top: targetScroll,
+      // Smooth-scrolling a long seek is slow and looks broken; snap instead.
+      behavior: prefersReducedMotion || jumpDistance > container.clientHeight * 3 ? 'auto' : 'smooth',
+    });
+  }, [activeIndex, chunks]);
+
+  return (
+    <div
+      ref={scrollRef}
+      className="hide-scrollbar"
+      style={{
+        height: '100%',
+        overflowY: 'auto',
+        padding: '40px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: chunks.length > 0 ? 'flex-start' : 'center',
+        gap: '12px',
+      }}
+    >
+      {chunks.length === 0 ? (
+        <p style={{
+          fontSize: '18px',
+          color: 'rgba(255,255,255,0.4)',
+          fontFamily: 'Genos, sans-serif',
+          textAlign: 'center',
+        }}>
+          Nothing playing yet
+        </p>
+      ) : (
+        chunks.map((chunk, index) => {
+          const isActive = index === activeIndex;
+          const isPast = index < activeIndex;
+
+          return (
+            <p
+              key={index}
+              data-chunk={index}
+              style={{
+                fontSize: '21px',
+                fontWeight: isActive ? 600 : 400,
+                lineHeight: 1.4,
+                textAlign: 'center',
+                maxWidth: '340px',
+                marginBottom: '16px',
+                color: isActive ? '#fff' : (isPast ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.4)'),
+                fontFamily: 'Funnel Display, sans-serif',
+                opacity: isActive ? 1 : (isPast ? 0.4 : 0.3),
+                transform: isActive ? 'scale(1.3)' : 'scale(1)',
+                transformOrigin: 'center center',
+                transition: 'opacity 0.3s ease-out, transform 0.3s ease-out, color 0.3s ease-out',
+                willChange: isActive ? 'transform, opacity' : undefined,
+              }}
+            >
+              {chunk}
+            </p>
+          );
+        })
+      )}
+    </div>
+  );
+});
+
+/**
+ * The only component subscribed to the 60fps playback clock, so the rest of the
+ * player (and the several-hundred-line transcript) is untouched by ticking.
+ */
+function PlayerScrubBar({ duration }: { duration: number }) {
+  const audio = useAudio();
+  const currentTime = useAudioTime();
+
+  // While dragging we show the dragged position and hold playback, then commit once
+  // on release. Seeking on every pointer move restarted the speech engine
+  // continuously, which is what made the bar feel like it was fighting back.
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
+  const scrubTimeRef = useRef(0);
+  const resumeAfterScrubRef = useRef(false);
+
+  const handleScrubStart = useCallback(() => {
+    resumeAfterScrubRef.current = audio.isPlaying;
+    scrubTimeRef.current = audio.getCurrentTime();
+    setScrubTime(scrubTimeRef.current);
+    if (audio.isPlaying) audio.pause();
+  }, [audio]);
+
+  const handleScrub = useCallback((time: number) => {
+    scrubTimeRef.current = time;
+    setScrubTime(time);
+  }, []);
+
+  const handleScrubEnd = useCallback(() => {
+    audio.seek(scrubTimeRef.current);
+    setScrubTime(null);
+    if (resumeAfterScrubRef.current) audio.play();
+    resumeAfterScrubRef.current = false;
+  }, [audio]);
+
+  const shownTime = scrubTime ?? currentTime;
+
+  return (
+    <ScrubBarContainer
+      duration={duration}
+      value={shownTime}
+      onScrub={handleScrub}
+      onScrubStart={handleScrubStart}
+      onScrubEnd={handleScrubEnd}
+    >
+      <ScrubBarTimeLabel time={shownTime} style={{ width: '36px', textAlign: 'left', fontSize: '12px', fontFamily: 'Genos, sans-serif' }} />
+      <ScrubBarTrack style={{ margin: '0 10px', height: '4px' }}>
+        <ScrubBarProgress progressColor="#ffffff" />
+        <ScrubBarThumb
+          style={{
+            width: '12px',
+            height: '12px',
+            background: '#ffffff',
+          }}
+        />
+      </ScrubBarTrack>
+      <ScrubBarTimeLabel time={duration} style={{ width: '36px', textAlign: 'right', fontSize: '12px', fontFamily: 'Genos, sans-serif' }} />
+    </ScrubBarContainer>
+  );
+}
+
+const SPEED_CYCLE = [1, 1.25, 1.5, 2];
+
 function PlayerPage() {
   const navigate = useNavigate();
   const audio = useAudio();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  
-  // Use context state for playback
+
   const isPlaying = audio.isPlaying;
-  const currentTime = audio.currentTime;
-  const totalDuration = audio.duration || 180; // Default to 3 mins if not loaded
-  
-  // DEBUG: Log nativeChunks to console
-  console.log('🎵 PlayerPage Debug:', {
-    nativeChunksLength: audio.nativeChunks?.length || 0,
-    currentChunkIndex: audio.currentChunkIndex,
-    isPlaying: audio.isPlaying,
-    firstChunk: audio.nativeChunks?.[0]?.slice(0, 50) || 'EMPTY',
-  });
-  
-  // Speed cycle: 1 -> 1.25 -> 1.5 -> 2 -> 1
-  const cycleSpeed = () => {
-    const speeds = [1, 1.25, 1.5, 2];
-    const currentIndex = speeds.indexOf(audio.playbackSpeed);
-    const nextIndex = (currentIndex + 1) % speeds.length;
-    audio.setSpeed(speeds[nextIndex]);
-  };
-  
+  const totalDuration = audio.duration;
 
-  
-  // Parse metadata from chunks if header is generic
-  const [parsedMeta, setParsedMeta] = useState({ title: '', author: '' });
+  const skip = useCallback((seconds: number) => {
+    const target = audio.getCurrentTime() + seconds;
+    audio.seek(Math.max(0, Math.min(totalDuration, target)));
+  }, [audio, totalDuration]);
 
-  useEffect(() => {
-    if (audio.nativeChunks.length > 0) {
-      let foundTitle = '';
-      let foundAuthor = '';
-      
-      // Look in first 5 chunks for "Title:" or "Author:" patterns
-      audio.nativeChunks.slice(0, 5).forEach(chunk => {
-        const cleanChunk = chunk.trim();
-        // Clean regex to extract value, handling potential whitespace
-        if (/^Title\s*:/i.test(cleanChunk)) {
-          foundTitle = cleanChunk.replace(/^Title\s*:\s*/i, '').replace(/[.|]$/g, '').trim();
-        }
-        if (/^Author\s*:/i.test(cleanChunk)) {
-          foundAuthor = cleanChunk.replace(/^Author\s*:\s*/i, '').replace(/[.|]$/g, '').trim();
-        }
-      });
-      
-      setParsedMeta({ title: foundTitle, author: foundAuthor });
-    }
-  }, [audio.nativeChunks]);
-  
-  // Auto-scroll to active chunk - Spotify Style (Near Top)
-  useEffect(() => {
-    if (audio.currentChunkIndex >= 0 && scrollRef.current) {
-      const activeEl = document.getElementById(`chunk-${audio.currentChunkIndex}`);
-      const container = scrollRef.current;
-      
-      if (activeEl && container) {
-        // Use getBoundingClientRect for precise reliability regardless of nesting
-        const activeRect = activeEl.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        
-        // Calculate offset rel to container
-        const currentRelTop = activeRect.top - containerRect.top;
-        const currentScroll = container.scrollTop;
-        
-        // Target: Position element at 30% from top (approx 180px down) to avoid sticky header
-        const topOffset = container.clientHeight * 0.30; 
-        
-        const targetScroll = currentScroll + (currentRelTop - topOffset);
-        
-        container.scrollTo({
-          top: targetScroll,
-          behavior: 'smooth'
-        });
+  const cycleSpeed = useCallback(() => {
+    const nextIndex = (SPEED_CYCLE.indexOf(audio.playbackSpeed) + 1) % SPEED_CYCLE.length;
+    audio.setSpeed(SPEED_CYCLE[nextIndex]);
+  }, [audio]);
+
+  // Extractors sometimes bury the real title/author in the first few lines.
+  const parsedMeta = useMemo(() => {
+    let title = '';
+    let author = '';
+
+    for (const chunk of audio.nativeChunks.slice(0, 5)) {
+      const clean = chunk.trim();
+      if (/^Title\s*:/i.test(clean)) {
+        title = clean.replace(/^Title\s*:\s*/i, '').replace(/[.|]$/g, '').trim();
+      }
+      if (/^Author\s*:/i.test(clean)) {
+        author = clean.replace(/^Author\s*:\s*/i, '').replace(/[.|]$/g, '').trim();
       }
     }
-  }, [audio.currentChunkIndex]);
 
+    return { title, author };
+  }, [audio.nativeChunks]);
 
-  
-  // Handle scrub bar seek
-  const handleSeek = (time: number) => {
-    audio.seek(time);
-  };
-  
-  // Handle play/pause toggle
-  const togglePlay = () => {
-    audio.togglePlay();
-  };
-  
-  // Get content info from context, preferring parsed info if main is generic
   const rawTitle = audio.content?.title;
-  // Use parsed title if raw is "Untitled" OR if raw is missing
   const fullTitle = (rawTitle && rawTitle !== 'Untitled') ? rawTitle : (parsedMeta.title || 'Untitled');
-  // Truncate title to 50 chars for cleaner display
   const displayTitle = fullTitle.length > 50 ? fullTitle.slice(0, 47) + '...' : fullTitle;
-  
-  const rawAuthor = audio.content?.author;
-  // Prefer parsed author if available (often better from text), else metadata
-  const fullAuthor = parsedMeta.author || rawAuthor || '';
-  // Truncate author to 30 chars - author should be a name, not content
-  const displayAuthor = fullAuthor.length > 30 ? fullAuthor.slice(0, 27) + '...' : fullAuthor;
-  
-  const source = audio.content?.source || '';
-  const wordCount = audio.content?.word_count || 0;
-  const readTime = Math.ceil(wordCount / 200); // ~200 words per minute
-  
 
-  
+  const fullAuthor = parsedMeta.author || audio.content?.author || '';
+  const displayAuthor = fullAuthor.length > 30 ? fullAuthor.slice(0, 27) + '...' : fullAuthor;
+
+  const source = audio.content?.source || '';
+  const readTime = Math.ceil((audio.content?.word_count || 0) / 200); // ~200 wpm
+
+  const handleShare = useCallback(async () => {
+    const sourceUrl = audio.url;
+    if (!sourceUrl) return;
+
+    const deepLink = `${window.location.origin}/?share=${encodeURIComponent(sourceUrl)}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: audio.content?.title || 'Listen on AudiText',
+          text: 'Check out this audio article:',
+          url: deepLink,
+        });
+      } catch {
+        /* user dismissed the share sheet */
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(deepLink);
+    } catch (err) {
+      console.error('Clipboard failed', err);
+    }
+  }, [audio]);
+
+
   return (
     <div 
       style={{ 
@@ -771,91 +892,16 @@ function PlayerPage() {
             pointerEvents: 'none',
           }} />
           
-          {/* Scrollable Lyrics Container */}
-          <div 
-            ref={scrollRef}
-            className="hide-scrollbar"
-            style={{
-              height: '100%',
-              overflowY: 'auto',
-              padding: '40px 16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: audio.nativeChunks.length > 0 ? 'flex-start' : 'center',
-              gap: '12px',
-            }}
-          >
-            {audio.nativeChunks.length > 0 ? (
-              audio.nativeChunks.map((chunk, index) => {
-                const isActive = index === audio.currentChunkIndex;
-                const isPast = index < audio.currentChunkIndex;
-                
-                return (
-                  <motion.p
-                    key={index}
-                    id={`chunk-${index}`}
-                    initial={{ opacity: 0.3 }}
-                    animate={{ 
-                      opacity: isActive ? 1 : (isPast ? 0.4 : 0.3),
-                      scale: isActive ? 1 : 0.95,
-                    }}
-                    transition={{ duration: 0.3, ease: 'easeOut' }}
-                    style={{
-                      fontSize: isActive ? '28px' : '20px', // MUCH bigger as requested
-                      fontWeight: isActive ? 600 : 400,
-                      lineHeight: 1.4,
-                      textAlign: 'center',
-                      maxWidth: '340px', // Wider to fit bigger text
-                      color: isActive ? '#fff' : (isPast ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.4)'), // Darker inactive for contrast
-                      fontFamily: 'Funnel Display, sans-serif', // Use the premium font
-                      transition: 'all 0.3s ease',
-                      marginBottom: '16px', // More breathing room
-                    }}
-                  >
-                    {chunk}
-                  </motion.p>
-                );
-              })
-            ) : (
-              <p style={{
-                fontSize: '18px',
-                color: 'rgba(255,255,255,0.4)',
-                fontFamily: 'Genos, sans-serif',
-                textAlign: 'center',
-              }}>
-                Content loading...
-              </p>
-            )}
-          </div>
+          <Lyrics chunks={audio.nativeChunks} activeIndex={audio.currentChunkIndex} />
         </div>
-        
+
         {/* Scrub Bar - margin-top:auto pushes to bottom */}
-        <div style={{ 
+        <div style={{
           marginTop: 'auto',
           marginBottom: '20px',
           padding: '0 8px',
         }}>
-          <ScrubBarContainer
-            duration={totalDuration}
-            value={currentTime}
-            onScrub={handleSeek}
-            onScrubStart={() => audio.pause()}
-            onScrubEnd={() => {}}
-          >
-            <ScrubBarTimeLabel time={currentTime} style={{ width: '36px', textAlign: 'left', fontSize: '12px', fontFamily: 'Genos, sans-serif' }} />
-            <ScrubBarTrack style={{ margin: '0 10px', height: '4px' }}>
-              <ScrubBarProgress progressColor="#ffffff" />
-              <ScrubBarThumb 
-                style={{ 
-                  width: '12px', 
-                  height: '12px',
-                  background: '#ffffff',
-                }} 
-              />
-            </ScrubBarTrack>
-            <ScrubBarTimeLabel time={totalDuration} style={{ width: '36px', textAlign: 'right', fontSize: '12px', fontFamily: 'Genos, sans-serif' }} />
-          </ScrubBarContainer>
+          <PlayerScrubBar duration={totalDuration} />
         </div>
         
         {/* Controls Row */}
@@ -868,40 +914,17 @@ function PlayerPage() {
           flexShrink: 0,
         }}>
           {/* Share Button */}
-          <button 
-            onClick={async () => {
-              const sourceUrl = audio.url;
-              if (!sourceUrl) return;
-              
-              const deepLink = `${window.location.origin}/?share=${encodeURIComponent(sourceUrl)}`;
-              console.log('Sharing link:', deepLink); // Debug log
-
-              if (navigator.share) {
-                try {
-                  await navigator.share({
-                    title: audio.content?.title || 'Listen on AudiText',
-                    text: 'Check out this audio article:',
-                    url: deepLink,
-                  });
-                } catch (err) {
-                  console.log('Share cancelled', err);
-                }
-              } else {
-                try {
-                  await navigator.clipboard.writeText(deepLink);
-                  alert('Link copied to clipboard!');
-                } catch (err) {
-                  console.error('Clipboard failed', err);
-                  alert('Failed to copy link. Please manually copy URL.');
-                }
-              }
-            }}
-            style={{ 
+          <button
+            onClick={handleShare}
+            aria-label="Share"
+            disabled={!audio.url}
+            style={{
               width: '44px',
               height: '44px',
               background: 'transparent',
-              border: 'none', 
-              cursor: 'pointer', 
+              border: 'none',
+              cursor: audio.url ? 'pointer' : 'not-allowed',
+              opacity: audio.url ? 1 : 0.35,
               color: 'rgba(255,255,255,0.7)',
               display: 'flex',
               alignItems: 'center',
@@ -910,17 +933,17 @@ function PlayerPage() {
           >
             <Share2 size={20} />
           </button>
-          
+
           {/* Skip Back */}
-          {/* Skip Back */}
-          <button 
-            onClick={() => audio.seek(Math.max(0, currentTime - 15))} 
-            style={{ 
+          <button
+            onClick={() => skip(-15)}
+            aria-label="Back 15 seconds"
+            style={{
               width: '48px',
               height: '40px',
               background: 'transparent',
-              border: 'none', 
-              cursor: 'pointer', 
+              border: 'none',
+              cursor: 'pointer',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
@@ -929,12 +952,12 @@ function PlayerPage() {
           >
             <SkipBack size={24} fill="#ffffff" />
           </button>
-          
+
           {/* Play/Pause */}
-          {/* Play/Pause */}
-          <button 
-            onClick={togglePlay} 
-            style={{ 
+          <button
+            onClick={audio.togglePlay}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            style={{
               width: '64px', 
               height: '56px', 
               background: 'transparent',
@@ -953,15 +976,15 @@ function PlayerPage() {
           </button>
           
           {/* Skip Forward */}
-          {/* Skip Forward */}
-          <button 
-            onClick={() => audio.seek(Math.min(totalDuration, currentTime + 15))} 
-            style={{ 
+          <button
+            onClick={() => skip(15)}
+            aria-label="Forward 15 seconds"
+            style={{
               width: '48px',
               height: '40px',
               background: 'transparent',
-              border: 'none', 
-              cursor: 'pointer', 
+              border: 'none',
+              cursor: 'pointer',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
@@ -970,12 +993,12 @@ function PlayerPage() {
           >
             <SkipForward size={24} fill="#ffffff" />
           </button>
-          
+
           {/* Speed Toggle */}
-          {/* Speed Toggle */}
-          <button 
+          <button
             onClick={cycleSpeed}
-            style={{ 
+            aria-label={`Playback speed ${audio.playbackSpeed}x`}
+            style={{
               width: '44px',
               height: '44px',
               background: 'transparent',
@@ -1018,7 +1041,7 @@ const SwipeableItem = React.memo(({
 }) => {
   const controls = useAnimation();
   
-  const handleDragEnd = useCallback(async (_: any, info: PanInfo) => {
+  const handleDragEnd = useCallback(async (_: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
     const offset = info.offset.x;
     if (offset < -100) {
       // Deleting
@@ -1104,37 +1127,32 @@ function LibraryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
-  
-  // Load items on mount
-  useEffect(() => {
-    loadItems();
-  }, []);
-  
-  const loadItems = async () => {
+
+  const loadItems = useCallback(async () => {
     try {
       setError(null);
       setLoading(true);
-      
-      // Check Auth
+
       const { data: { session } } = await supabase.auth.getSession();
+      setIsGuest(!session);
       if (!session) {
-        setIsGuest(true);
-        setLoading(false);
+        setItems([]);
         return;
       }
-      
-      const data = await getLibraryItems();
-      setItems(data);
+
+      setItems(await getLibraryItems());
     } catch (error) {
       console.error('Failed to load library', error);
       setError('Could not connect to Library.');
     } finally {
-      // If we didn't return early
-      if (items) setLoading(false); 
-      // Note: isGuest return handles loading=false there, but safe to set here too if logic flows
+      setLoading(false);
     }
-  };
-  
+  }, []);
+
+  useEffect(() => {
+    loadItems();
+  }, [loadItems]);
+
   // Calculate time left from progress and duration
   const getTimeLeft = (wordCount: number, progress: number) => {
     const mins = Math.ceil((wordCount || 1000) / 200); // 200 wpm estimate
@@ -1143,7 +1161,7 @@ function LibraryPage() {
   };
   
   // Toggle favorite
-  const handleToggleFavorite = async (id: string, currentStatus: boolean) => {
+  const handleToggleFavorite = useCallback(async (id: string, currentStatus: boolean) => {
     // Optimistic update
     setItems(prev => prev.map(item => 
       item.id === id ? { ...item, is_favorite: !currentStatus } : item
@@ -1156,13 +1174,13 @@ function LibraryPage() {
       // Revert on error
       loadItems();
     }
-  };
-  
+  }, [loadItems]);
+
   // Delete item
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     // Optimistic update
     setItems(prev => prev.filter(item => item.id !== id));
-    
+
     try {
       await deleteLibraryItem(id);
     } catch (error) {
@@ -1170,8 +1188,8 @@ function LibraryPage() {
       // Revert/Reload handles basic error case
       loadItems();
     }
-  };
-  
+  }, [loadItems]);
+
   // Filter items by search and active filter
   const filteredItems = items.filter(item => {
     const matchesSearch = (item.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1248,11 +1266,6 @@ function LibraryPage() {
     >
 
       
-      {/* Noise Overlay */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
-        <Noise patternAlpha={20} patternSize={100} />
-      </div>
-      
       {/* Gradient fade to black at top */}
       <div style={{
         position: 'fixed',
@@ -1264,12 +1277,12 @@ function LibraryPage() {
         zIndex: 0,
         pointerEvents: 'none',
       }} />
-      
+
       {/* Content Container */}
-      {/* Content Container */}
-      <PullToRefresh 
+      <PullToRefresh
         scrollableRef={scrollRef}
-        style={{ 
+        onRefresh={loadItems}
+        style={{
           position: 'relative', 
           zIndex: 1, 
           width: '100%',
@@ -1397,9 +1410,10 @@ function LibraryPage() {
           </div>
           
           {/* Article List - Scrollable Internal */}
-          <div 
+          <div
+            ref={scrollRef}
             className="library-list-content"
-            style={{ 
+            style={{
               flex: 1, 
               overflowY: 'auto',
               minHeight: 0, // CRITICAL for nested flex scrolling
@@ -1468,7 +1482,9 @@ function LibraryPage() {
                           word_count: item.word_count,
                           author: item.author || undefined,
                           ai_cleaned: true
-                        }, 1, item.id, item.url); // Pass item.id and item.url for progress & sharing
+                        // Honour the speed the user picked in Settings, and pass
+                        // item.id / item.url for progress sync & sharing.
+                        }, audio.playbackSpeed, item.id, item.url);
                         navigate('/player');
                       }}
                       style={{ 
@@ -1604,80 +1620,27 @@ function LibraryPage() {
 }
 
 // ==================== SETTINGS PAGE ====================
-function SettingsPage() {
-  // Green accent colors matching home screen dot
-  const colors = {
-    primary: '#4ADE80',    // Green-400 (matches home dot)
-    secondary: '#22C55E',  // Green-500
-    tertiary: '#86EFAC',   // Green-300
-  };
-  const audio = useAudio(); // Connect to real audio context
-  
-  // Persistent State
-  const [autoArchive, setAutoArchive] = useState(() => {
-    return localStorage.getItem('audiotext_auto_archive') === 'true';
-  });
-  const [hapticsEnabled, setHapticsEnabled] = useState(() => {
-    const stored = localStorage.getItem('audiotext_haptics');
-    return stored === null ? true : stored === 'true'; // Default true
-  });
-  const [showCacheCleared, setShowCacheCleared] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  
-  // Sync Audio Speed changes to context AND storage
-  const handleSpeedChange = (speed: number) => {
-    const rounded = Math.round(speed * 100) / 100;
-    audio.setSpeed(rounded);
-    localStorage.setItem('audiotext_playback_speed', String(rounded));
-  };
-  
-  // Persist other settings
-  const toggleAutoArchive = () => {
-    const newValue = !autoArchive;
-    setAutoArchive(newValue);
-    localStorage.setItem('audiotext_auto_archive', String(newValue));
-  };
+// Green accent colors matching home screen dot
+const SETTINGS_COLORS = {
+  primary: '#4ADE80',    // Green-400 (matches home dot)
+  secondary: '#22C55E',  // Green-500
+  tertiary: '#86EFAC',   // Green-300
+};
 
-  const toggleHaptics = () => {
-    const newValue = !hapticsEnabled;
-    setHapticsEnabled(newValue);
-    localStorage.setItem('audiotext_haptics', String(newValue));
-    if (newValue && navigator.vibrate) navigator.vibrate(50);
-  };
-  
-  const handleClearCache = () => {
-    // Clear application specific storage
-    // Keep settings, clear data cache if we had one (e.g. library items if stored locally)
-    // For now, we mainly use Supabase, so this is mostly a visual feedback or clearing non-essential local keys
-    // Let's pretend we clear "recent_searches" or similar if we had them.
-    // Real implementation:
-    localStorage.removeItem('audiotext_native_content_cache'); // Example
-    
-    setShowCacheCleared(true);
-    setTimeout(() => setShowCacheCleared(false), 2000);
-    if (hapticsEnabled && navigator.vibrate) navigator.vibrate([50, 50, 50]);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      // Clear local settings if desired, or keep them. 
-      // We'll reload to ensure clean state and show /auth or home as guest.
-      window.location.href = '/auth'; 
-    } catch (e) {
-      console.error('Sign out error', e);
-    }
-  };
-  
-  // Toggle Switch Component
-  const Toggle = ({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) => (
+// Defined at module scope: declaring it inside SettingsPage created a brand new
+// component type on every render, so React unmounted and remounted the switch
+// (killing its transition) each time any setting changed.
+function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+  return (
     <button
       onClick={onToggle}
+      role="switch"
+      aria-checked={enabled}
       style={{
         width: '44px',
         height: '24px',
         borderRadius: '12px',
-        background: enabled ? colors.primary : 'rgba(255,255,255,0.15)',
+        background: enabled ? SETTINGS_COLORS.primary : 'rgba(255,255,255,0.15)',
         border: 'none',
         cursor: 'pointer',
         position: 'relative',
@@ -1697,6 +1660,62 @@ function SettingsPage() {
       }} />
     </button>
   );
+}
+
+function SettingsPage() {
+  const colors = SETTINGS_COLORS;
+  const audio = useAudio(); // Connect to real audio context
+  
+  // Persistent State
+  const [autoArchive, setAutoArchive] = useState(() => {
+    return localStorage.getItem('audiotext_auto_archive') === 'true';
+  });
+  const [hapticsEnabled, setHapticsEnabled] = useState(() => {
+    const stored = localStorage.getItem('audiotext_haptics');
+    return stored === null ? true : stored === 'true'; // Default true
+  });
+  const [showCacheCleared, setShowCacheCleared] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // setSpeed clamps, persists, and re-applies the rate to any active playback.
+  const handleSpeedChange = (speed: number) => {
+    audio.setSpeed(Math.round(speed * 100) / 100);
+  };
+  
+  // Persist other settings
+  const toggleAutoArchive = () => {
+    const newValue = !autoArchive;
+    setAutoArchive(newValue);
+    localStorage.setItem('audiotext_auto_archive', String(newValue));
+  };
+
+  const toggleHaptics = () => {
+    const newValue = !hapticsEnabled;
+    setHapticsEnabled(newValue);
+    localStorage.setItem('audiotext_haptics', String(newValue));
+    if (newValue && navigator.vibrate) navigator.vibrate(50);
+  };
+  
+  const handleClearCache = () => {
+    // Drop the cached article/playback snapshot but keep user preferences.
+    audio.reset();
+    localStorage.removeItem('audiotext_native_content_cache');
+
+    setShowCacheCleared(true);
+    setTimeout(() => setShowCacheCleared(false), 2000);
+    if (hapticsEnabled && navigator.vibrate) navigator.vibrate([50, 50, 50]);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      // Clear local settings if desired, or keep them. 
+      // We'll reload to ensure clean state and show /auth or home as guest.
+      window.location.href = '/auth'; 
+    } catch (e) {
+      console.error('Sign out error', e);
+    }
+  };
   
   return (
     <div 
@@ -1710,11 +1729,6 @@ function SettingsPage() {
       }}
     >
       
-      {/* Noise Overlay */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <Noise patternAlpha={15} patternSize={100} />
-      </div>
-      
       {/* Gradient fade to black at top */}
       <div style={{
         position: 'fixed',
@@ -1726,7 +1740,7 @@ function SettingsPage() {
         zIndex: 1,
         pointerEvents: 'none',
       }} />
-      
+
       {/* Content Container */}
       <PullToRefresh
         scrollableRef={scrollRef}
@@ -1811,8 +1825,8 @@ function SettingsPage() {
                 
                 <ScrubBar
                   value={audio.playbackSpeed}
-                  min={0.5}
-                  max={2.5}
+                  min={MIN_SPEED}
+                  max={MAX_SPEED}
                   step={0.05}
                   onChange={handleSpeedChange}
                   formatValue={(v) => `${v.toFixed(2)}x`}
@@ -1947,20 +1961,23 @@ function SettingsPage() {
 }
 
 // ==================== PHONE MOCKUP WRAPPER (Desktop Only) ====================
+const DESKTOP_QUERY = '(min-width: 1024px)';
+
 function PhoneMockup({ children }: { children: React.ReactNode }) {
-  const [isDesktop, setIsDesktop] = useState(false);
+  // Resolved during the first render so desktop users never see the mobile layout flash.
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia(DESKTOP_QUERY).matches);
   const location = useLocation();
   const isPlayerPage = location.pathname === '/player';
-  
+
+  // matchMedia fires only when the breakpoint is actually crossed, unlike a resize
+  // listener that used to call setState on every pixel of a window drag.
   useEffect(() => {
-    const checkDesktop = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-    };
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
-    return () => window.removeEventListener('resize', checkDesktop);
+    const query = window.matchMedia(DESKTOP_QUERY);
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
   }, []);
-  
+
   if (!isDesktop) {
     // Mobile/tablet: render app normally without phone frame
     return <>{children}</>;
@@ -1979,17 +1996,19 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
       position: 'relative',
     }}>
       {/* Interactive DotGrid background - matching react-bits preview */}
-      <DotGrid 
-        dotSize={4}
-        gap={20}
-        baseColor="#2a2a40"
-        activeColor="#5227FF"
-        proximity={100}
-        shockRadius={180}
-        shockStrength={2}
-        returnSpeed={0.08}
-        excludeSelector="[data-phone-frame]"
-      />
+      <Suspense fallback={null}>
+        <DotGrid
+          dotSize={4}
+          gap={20}
+          baseColor="#2a2a40"
+          activeColor="#5227FF"
+          proximity={100}
+          shockRadius={180}
+          shockStrength={2}
+          returnSpeed={0.08}
+          excludeSelector="[data-phone-frame]"
+        />
+      </Suspense>
       
       {/* Made with love footer - bottom right */}
       <div style={{
@@ -2155,120 +2174,108 @@ function PhoneMockup({ children }: { children: React.ReactNode }) {
 
 
 // ==================== APP ====================
+const NOOP = () => {};
+
+/** True while the 7-day guest pass is still valid; clears it once it expires. */
+function hasValidGuestPass() {
+  const expiry = localStorage.getItem('audiotext_guest_expiry');
+  if (!expiry) return false;
+  if (Date.now() < Number(expiry)) return true;
+  localStorage.removeItem('audiotext_guest_expiry');
+  return false;
+}
+
 function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const audio = useAudio();
-  const processedRef = useRef<string | null>(null);
+  const processedShareRef = useRef<string | null>(null);
 
-  // Deep Link Handler (Share Feature)
+  // Latest values for effects that must not re-run on every render.
+  const navigateRef = useRef(navigate);
+  const audioRef = useRef(audio);
+  const pathnameRef = useRef(location.pathname);
+
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const shareUrl = params.get('share');
+    navigateRef.current = navigate;
+    audioRef.current = audio;
+    pathnameRef.current = location.pathname;
+  });
 
-    // Prevent loop if we already processed this URL
-    if (shareUrl && shareUrl !== processedRef.current) {
-      try {
-        const decodedUrl = decodeURIComponent(shareUrl);
-        processedRef.current = shareUrl; // Mark as processed
-        console.log('Deep link detected:', decodedUrl);
-        
-        // Clean URL without triggering re-render loop if possible, 
-        // or just accept that we won't process it again due to ref.
-        // We'll use history.replaceState to verify strictly.
-        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
-        window.history.replaceState({path: newUrl}, '', newUrl);
-
-        // Start processing
-        audio.processUrl(decodedUrl)
-          .then(() => {
-             navigate('/player');
-          })
-          .catch(err => {
-             console.error('Failed to process deep link', err);
-             navigate('/');
-          });
-          
-      } catch (e) {
-        console.error('Invalid share link', e);
-      }
-    }
-  }, [location.search, audio, navigate]);
-  
-  // Ensure we have an anonymous session on mount
-  // Ensure we have an anonymous session on mount & handle OAuth response
+  // Deep Link Handler (Share Feature).
+  // Depends on the query string alone - it used to list `audio`, whose identity
+  // changed on every playback tick, so this ran ~60x per second while playing.
   useEffect(() => {
-    // Check initial auth state & redirect logic
+    const shareUrl = new URLSearchParams(location.search).get('share');
+    if (!shareUrl || shareUrl === processedShareRef.current) return;
+
+    processedShareRef.current = shareUrl;
+    const decodedUrl = decodeURIComponent(shareUrl);
+
+    // Strip the param so a refresh doesn't re-trigger extraction.
+    const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+
+    audioRef.current.processUrl(decodedUrl)
+      .then(() => navigateRef.current('/player'))
+      .catch(err => {
+        console.error('Failed to process deep link', err);
+        navigateRef.current('/');
+      });
+  }, [location.search]);
+
+  // Auth gate + OAuth redirect handling.
+  // Mount-only: this previously re-ran on every navigation, firing a fresh
+  // getSession() request and re-subscribing to auth changes each time.
+  useEffect(() => {
+    let cancelled = false;
+
     const checkAuthStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      // Check Guest Mode Expiry
-      const guestExpiry = localStorage.getItem('audiotext_guest_expiry');
-      let isGuestValid = false;
-      
-      if (guestExpiry) {
-        if (Date.now() < parseInt(guestExpiry)) {
-          isGuestValid = true;
-        } else {
-          // Expired
-          localStorage.removeItem('audiotext_guest_expiry');
-        }
-      }
+      if (cancelled) return;
 
-      // Logic:
-      // 1. If NOT authenticated AND NOT valid guest -> Redirect to /auth
-      // 2. If trying to access /auth BUT IS authenticated/guest -> Redirect to /
-      
-      const isAuthPage = location.pathname === '/auth';
-      const hasAccess = !!session || isGuestValid;
+      const isAuthPage = pathnameRef.current === '/auth';
+      const hasAccess = !!session || hasValidGuestPass();
 
-      if (!hasAccess && !isAuthPage) {
-        // New user/expired guest -> GO TO LOGIN
-        navigate('/auth', { replace: true });
-      } else if (hasAccess && isAuthPage) {
-        // Already logged in -> GO TO APP
-        navigate('/', { replace: true });
-      }
+      if (!hasAccess && !isAuthPage) navigateRef.current('/auth', { replace: true });
+      else if (hasAccess && isAuthPage) navigateRef.current('/', { replace: true });
     };
 
     checkAuthStatus();
 
-    // Listen for auth changes (like OAuth redirect completion)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _) => {
-      // If we just signed in and there's a hash in the URL, clear it
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
-         if (window.location.hash.includes('access_token')) {
-            navigate(location.pathname, { replace: true });
-         }
-         // Also ensure we leave auth page if we just signed in
-         if (location.pathname === '/auth') {
-            navigate('/', { replace: true });
-         }
+        // Clear the OAuth fragment, then leave the auth page.
+        if (window.location.hash.includes('access_token')) {
+          navigateRef.current(pathnameRef.current, { replace: true });
+        }
+        if (pathnameRef.current === '/auth') navigateRef.current('/', { replace: true });
       }
-      
-      // Handle explicit sign out
+
       if (event === 'SIGNED_OUT') {
-         localStorage.removeItem('audiotext_guest_expiry'); // Clear guest if signing out
-         navigate('/auth', { replace: true });
+        localStorage.removeItem('audiotext_guest_expiry');
+        navigateRef.current('/auth', { replace: true });
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [navigate, location.pathname]);
-  
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, []);
 
-  
   const appContent = (
     <div style={{ background: '#000', minHeight: '100vh' }}>
       <Routes location={location}>
-        <Route path="/" element={<HomePage onVisit={() => {}} />} />
+        <Route path="/" element={<HomePage onVisit={NOOP} />} />
         <Route path="/player" element={<PlayerPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
-      
-      {/* Global Persistent Noise Overlay */}
+
+      {/* Single global grain layer. Each page used to mount its own on top of this
+          one, so two full-screen canvas loops ran at all times. */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
         <Noise patternAlpha={15} patternSize={100} />
       </div>
@@ -2276,7 +2283,7 @@ function AppLayout() {
       <Navigation />
     </div>
   );
-  
+
   return (
     <PhoneMockup>
       {appContent}

@@ -3,18 +3,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
-// Shared Components (Importing directly from App's dependencies references would be better, 
-// strictly we should move these to separate files, but for now I assume they are globally available or I import them if they are exported from components)
-// Actually App.tsx imports them from '@/components/...'. I will do the same.
-import Noise from '@/components/Noise'
 import ShimmeringText from '@/components/ShimmeringText'
 import { Loader2 } from 'lucide-react'
-
-// ... (GoogleIcon and RotatingWord omitted for brevity if unchanged, but I need to include them if I am replacing a block that includes them. 
-// Wait, I can target specific chunks or just replace the component signature and imports.
-// I will target imports first, then component signature/JSX.
-
-// Actually, let's just do it in chunks to be safe.)
 
 // Simple Google Icon SVG
 const GoogleIcon = () => (
@@ -92,11 +82,8 @@ export function AuthPage() {
       
 
       
-      {/* Noise Overlay */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <Noise patternAlpha={15} patternSize={100} />
-      </div>
-      
+      {/* Grain comes from the single global layer in AppLayout. */}
+
       {/* Gradient Overlay */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '50vh', background: 'linear-gradient(to bottom, #000 0%, transparent 100%)', zIndex: 1, pointerEvents: 'none' }} />
 

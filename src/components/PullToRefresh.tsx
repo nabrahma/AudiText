@@ -1,15 +1,17 @@
 import { Loader2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+
+const PULL_THRESHOLD = 120;
 
 interface PullToRefreshProps {
   children: React.ReactNode;
-  /** 
-   * Ref to the scrollable element within the children. 
+  /**
+   * Ref to the scrollable element within the children.
    * If provided, pull-to-refresh will only trigger when this element is at scrollTop 0.
    * If not provided, it assumes the content is always at the top (non-scrollable).
    */
   scrollableRef?: React.RefObject<HTMLElement | null>;
-  onRefresh?: () => void;
+  onRefresh?: () => void | Promise<unknown>;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -18,14 +20,26 @@ export function PullToRefresh({ children, scrollableRef, onRefresh, className, s
   const [pullStartY, setPullStartY] = useState(0);
   const [pullMoveY, setPullMoveY] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const mountedRef = useRef(true);
 
-  const handleRefresh = () => {
-     if (onRefresh) {
-        onRefresh();
-     } else {
-        window.location.reload();
-     }
-  };
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
+  const handleRefresh = useCallback(async () => {
+    if (!onRefresh) {
+      // No handler: a full reload is the refresh, and the overlay goes with the page.
+      setIsRefreshing(true);
+      window.location.reload();
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      // Without this the spinner overlay stayed up forever and swallowed every tap.
+      if (mountedRef.current) setIsRefreshing(false);
+    }
+  }, [onRefresh]);
 
   return (
     <div
@@ -49,10 +63,7 @@ export function PullToRefresh({ children, scrollableRef, onRefresh, className, s
         }
       }}
       onTouchEnd={() => {
-        if (pullMoveY > 120) { 
-          setIsRefreshing(true);
-          handleRefresh();
-        }
+        if (pullMoveY > PULL_THRESHOLD && !isRefreshing) handleRefresh();
         setPullStartY(0);
         setPullMoveY(0);
       }}
@@ -81,7 +92,7 @@ export function PullToRefresh({ children, scrollableRef, onRefresh, className, s
             borderRadius: '50%',
             padding: '8px',
             transform: `rotate(${pullMoveY * 2}deg)`,
-            opacity: Math.min(pullMoveY / 100, 1)
+            opacity: Math.min(pullMoveY / PULL_THRESHOLD, 1)
           }}>
             <Loader2 size={24} style={{ color: 'white' }} />
           </div>

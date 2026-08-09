@@ -39,23 +39,53 @@ export interface LibraryItem {
 // Content Extraction
 // ============================================
 
-export async function extractContent(url: string): Promise<ExtractedContent> {
-  const response = await fetch(`${FUNCTIONS_URL}/extract-content`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${ANON_KEY}`,
-    },
-    body: JSON.stringify({ url }),
-  })
+/** Give up rather than leaving the UI stuck on "Extracting..." forever. */
+const EXTRACT_TIMEOUT_MS = 45_000
 
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || 'Failed to extract content')
+export async function extractContent(url: string): Promise<ExtractedContent> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), EXTRACT_TIMEOUT_MS)
+
+  let response: Response
+  try {
+    response = await fetch(`${FUNCTIONS_URL}/extract-content`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ANON_KEY}`,
+      },
+      body: JSON.stringify({ url }),
+      signal: controller.signal,
+    })
+  } catch (e) {
+    if (controller.signal.aborted) {
+      throw new Error('That page took too long to load. Please try again.')
+    }
+    throw new Error(e instanceof Error ? e.message : 'Network error while reading that link.')
+  } finally {
+    clearTimeout(timeout)
   }
 
-  const data = await response.json()
-  console.log('🔍 Extracted Data (Debug):', data)
+  if (!response.ok) {
+    // An error page is often HTML, not JSON - parsing it blindly used to swallow the
+    // real status behind a generic "Unexpected token" failure.
+    const body = await response.text()
+    let message = ''
+    try {
+      message = JSON.parse(body)?.error ?? ''
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(message || `Failed to extract content (${response.status})`)
+  }
+
+  const data = await response.json() as ExtractedContent
+  if (import.meta.env.DEV) console.log('🔍 Extracted Data (Debug):', data)
+
+  if (!data?.content?.trim()) {
+    throw new Error('No readable text found at that link.')
+  }
+
   return data
 }
 
