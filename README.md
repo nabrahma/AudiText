@@ -1,218 +1,286 @@
 <p align="center">
-  <img src="docs/screenshots/home-page.png" alt="AudiText Home" width="300">
+  <img src="docs/screenshots/home-page.png" alt="AudiText" width="300">
 </p>
 
-<h1 align="center">🧠 AudiText AI</h1>
+<h1 align="center">AudiText</h1>
 
 <p align="center">
-  <strong>The Intelligent Audio Engine for the Semantic Web</strong>
-</p>
-
-<p align="center">
-  AudiText is a next-generation <strong>AI-Powered Audio Reader</strong> that transforms the static web into immersive, high-fidelity audio experiences. By leveraging advanced Natural Language Processing (NLP) and state-of-the-art Text-to-Speech (TTS), it doesn't just read text—it understands context, declutters noise, and delivers a studio-quality listening experience.
+  <strong>The web. Out loud.</strong>
 </p>
 
 <p align="center">
-  <a href="#key-features">Key Features</a> •
-  <a href="#ai-capabilities">AI Capabilities</a> •
-  <a href="#tech-stack">Tech Stack</a> •
-  <a href="#security-privacy">Security</a> •
-  <a href="#quick-start">Quick Start</a>
+  Paste a link. Press play.<br>
+  That's the whole thing.
+</p>
+
+<p align="center">
+  <a href="#listen">Listen</a> •
+  <a href="#read-along">Read Along</a> •
+  <a href="#performance">Performance</a> •
+  <a href="#privacy">Privacy</a> •
+  <a href="#specs">Specs</a> •
+  <a href="#quick-start">Get Started</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" alt="React 19">
-  <img src="https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/Vite-7.2-646CFF?style=flat-square&logo=vite" alt="Vite">
-  <img src="https://img.shields.io/badge/Supabase-Auth-3ECF8E?style=flat-square&logo=supabase" alt="Supabase">
+  <img src="https://img.shields.io/badge/Supabase-Auth%20%2B%20RLS-3ECF8E?style=flat-square&logo=supabase" alt="Supabase">
   <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License">
 </p>
 
 ---
 
-## 🚀 Why AudiText?
+## <a name="listen"></a>Sound, where there was only text.
 
-In an era of information overload, **AudiText** serves as your intelligent filter. Unlike standard screen readers that blindly recite metadata and ads, AudiText uses a bespoke **Smart Polish Layer** to semantically analyze content structure. It identifies the core narrative, strips away "hashtag spam" and repetitive headers, and synthesizes the remaining essence into fluid, human-like speech.
+There's a long article you've been meaning to read. A thread you saved. A post
+you'll get to later.
 
-Whether you're commuting with a long-form article or multitasking with a Twitter thread, AudiText ensures you consume knowledge, not noise.
+You won't. Not with your eyes.
 
----
-
-## ✨ Key Features
-
-### <a name="ai-capabilities"></a>🧠 Smart Content Processing
-- **Semantic Text Extraction**: Automatically parses complex DOM structures from X (Twitter), Medium, Substack, and more.
-- **AI-Driven Polish Layer**:
-  - **Contextual Cleanup**: Eliminates "clickbait" hooks, hashtags, and repetitive boilerplate.
-  - **Smart Intro Generation**: Synthesizes professional intros ("Title, by Author") even when metadata is sparse.
-  - **Deduplication Engine**: Detects and suppresses redundant information for seamless flow.
-
-### 🎧 Immersive Playback Engine
-- **Native Neural TTS**: Leverages the browser's built-in **Web Speech API** for unlimited, offline-capable speech synthesis without API quotas.
-- **Clean Player Interface**: Minimalist, bottom-aligned controls optimized for one-handed mobile use.
-- **Dynamic Speed Control**: Variable playback rates (0.5x - 2.5x) with pitch correction.
-- **Deep Linking & Sharing**: Share articles with `?share=` URL parameters for instant playback.
-
-### 🛡️ Enterprise-Grade Security
-- **Row Level Security (RLS)**: Database policies strictly enforce data sovereignty—users can *only* access their own library items.
-- **Input Hardening**: Advanced sanitization prevents SQL/Command injection and XSS attacks via URL inputs.
-- **Auth Integrity**: Robust localized authentication handling via Supabase Auth.
-
-### 📱 Premium UX/UI
-- **"Reactive Noir" Aesthetic**: A cohesive design language featuring glassmorphism, adaptive film grain (noise), and procedural gradients.
-- **Mobile-First Progressive Web App (PWA)**: Touch-optimized scrub bars, haptic feedback integration, and 60fps animations on mobile devices.
-- **Interactive DotGrid Background**: GPU-accelerated particle effect with click-to-ripple interaction.
-
-### ⚡ Production-Grade Performance
-- **React.memo Optimization**: All heavy components (DotGrid, Noise, SwipeableItem) are memoized to prevent unnecessary re-renders.
-- **GPU-Accelerated Animations**: CSS animations use `transform: translateZ(0)` and `will-change` hints for buttery 60fps performance.
-- **Spatial Partitioning**: DotGrid uses O(1) spatial grid lookup instead of O(n) for efficient hover detection.
-- **Optimized Bundle**: ~656 KB total (148 KB gzipped) with vendor chunk splitting.
+AudiText takes any link and turns it into something you can listen to — on the
+walk, on the train, with your hands full and your screen dark. No app store.
+No account required to start. Just a link and a play button.
 
 ---
 
-## 🏗️ Cloud & AI Architecture
+## It reads the story. Not the sidebar.
 
-<p align="center">
-The system uses a <strong>Dual-Layer Extraction Pipeline</strong> to ensure reliability even when AI credits are exhausted.
-</p>
+Most readers recite whatever's on the page. Navigation. Cookie banners. *Share
+this article.* Twelve hashtags in a row.
+
+AudiText doesn't.
+
+Every link runs through a two-stage pipeline. **Jina AI Reader** turns the raw
+page into clean Markdown. **Gemini 2.0** then strips it down to the actual
+narrative — no boilerplate, no clickbait hooks, no login prompts masquerading as
+content. And if the AI layer is unavailable, a hardened regex pass takes over.
+It never fails to a blank page.
+
+Then the text is broken into sentence-sized pieces. Small enough to seek. Short
+enough that no browser ever chokes on them.
+
+---
+
+## <a name="read-along"></a>Follow along. Line by line.
+
+The words scroll with the voice.
+
+The line being spoken sits bright and forward. The lines behind it fade back.
+The whole transcript drifts upward on its own, keeping your place a third of the
+way down the screen — close enough to read ahead, far enough not to rush you.
+
+Look up mid-sentence and you'll find your place instantly. Or don't look at all.
+
+---
+
+## Scrub anywhere. It lands.
+
+Drag the bar and playback follows. Not eventually — exactly.
+
+Because the article is already divided into sentences, seeking is instant: the
+engine jumps to the sentence under your thumb and starts speaking. Skip fifteen
+seconds back to catch a name. Jump to the end. It always picks up mid-thought,
+never mid-word.
+
+And the progress bar tells the truth. It advances at sixty frames a second, but
+never runs ahead of the voice actually speaking.
+
+---
+
+## Your speed. Your voice. Remembered.
+
+Half speed to a quarter past double, in increments of five percent. Tap the
+player to cycle the presets, or dial it in exactly from Settings.
+
+Set it once. Every article after that starts the way you like it.
+
+---
+
+## Close the tab. Come back tomorrow.
+
+AudiText remembers the article you were on and the sentence you stopped at.
+
+Sign in and your library follows you — every piece you've saved, how far you
+got, what you starred — on every device. Or stay a guest for a week and decide
+later.
+
+---
+
+## <a name="performance"></a>Fast. Then faster.
+
+Speed isn't a feature you add at the end. It's decided by what you refuse to do
+sixty times a second.
+
+- **176 KB gzipped** on first load. The desktop-only visual layer — another
+  29 KB — never reaches a phone.
+- **One render per event, not per frame.** The playback clock ticks at 60fps
+  through an isolated context, so a several-hundred-line transcript doesn't
+  re-render because a timestamp moved.
+- **Zero animation nodes in the transcript.** Highlighting uses GPU-composited
+  opacity and scale. Nothing touches layout.
+- **Nothing runs in the background.** Canvas effects pause when the tab is
+  hidden and stop the moment they leave the screen.
+- **Honest motion.** Turn on *Reduce Motion* and the decorative loops don't
+  slow down. They stop.
+
+---
+
+## Grain, glass, and a black that's actually black.
+
+A single film-grain layer over true black. Frosted panels. A dot field on
+desktop that ripples where you click, built on a spatial grid so it stays smooth
+no matter how many dots are on screen.
+
+On a wide display, the whole app sits inside a machined phone — because that's
+where it's meant to live.
+
+---
+
+## <a name="privacy"></a>Private by design.
+
+Your library is yours. Row Level Security is enforced in the database itself, so
+a user can only ever read or write their own rows — not because the client is
+polite about it, but because Postgres won't allow anything else.
+
+Provider keys live in Edge Function secrets and never touch the browser. The
+server tells you what it extracted. It doesn't tell you what it's holding.
+
+---
+
+## <a name="specs"></a>Specs
+
+**Frontend**
+
+| | |
+|---|---|
+| **React 19** + **TypeScript 5.9** | Strict, hook-based UI |
+| **Vite 7** | Build tooling, chunk splitting, lazy routes |
+| **Framer Motion** | Physics-based transitions |
+| **GSAP** | Elastic easing for the desktop dot field |
+| **Canvas 2D** | Film grain and dot field, hand-tuned |
+| **Lucide** | Iconography |
+
+**Backend**
+
+| | |
+|---|---|
+| **Supabase Postgres** | Library storage |
+| **Supabase Auth** | Google OAuth + guest sessions |
+| **Edge Functions** (Deno) | Content extraction |
+| **Row Level Security** | Per-user access, enforced in the database |
+
+**Intelligence**
+
+| | |
+|---|---|
+| **Jina AI Reader** | URL → clean Markdown |
+| **Google Gemini 2.0 Flash** | Narrative extraction and cleanup |
+| **Web Speech API** | On-device synthesis. No quotas, no per-word billing |
+
+---
+
+## How it fits together
 
 ```mermaid
 graph TD
-    Design[Figma Design] -.-> |"AI Generation (90% Fidelity)"| Components
-    User[User / PWA] -->|1. Paste URL| Edge[Supabase Edge Function]
-    User -->|Listen| BrowserTTS[Browser Native TTS]
-    User -->|Sync| DB[(Supabase Database)]
-    
-    subgraph Backend [Edge Function: extract-content]
-        Edge -->|Fetch Raw HTML| Jina[Jina AI Reader]
-        Edge -->|Clean Text| AI_Logic{Has Credits?}
-        AI_Logic -->|Yes| Gemini[Google Gemini 2.0]
-        AI_Logic -->|No| Manual[Robust Regex Cleaner]
+    User[User] -->|Paste a link| Edge[Edge Function: extract-content]
+
+    subgraph Backend [Supabase]
+        Edge -->|Fetch| Jina[Jina AI Reader]
+        Edge --> AI{AI available?}
+        AI -->|Yes| Gemini[Gemini 2.0 Flash]
+        AI -->|No| Fallback[Regex cleaner]
+        DB[(Postgres + RLS)]
     end
-    
-    subgraph Frontend [React + Vite + Framer Motion]
-        Components[React Components]
-        Store[Local Storage] <-->|Cache| State[Audio Context]
-        Components -.-> State
-        State -->|Audio Data| Visuals
-        subgraph Visuals [Visual Engine]
-             Bits[react-bits / DotGrid]
-             Shimmer[GPU-Accelerated Shimmer]
-        end
+
+    Edge -->|Clean article| Audio[Audio Engine]
+
+    subgraph Frontend [React + Vite]
+        Audio -->|Sentence chunks| TTS[Web Speech API]
+        Audio -->|Chunk index| Transcript[Live transcript]
+        Audio -->|60fps clock| Scrubber[Scrub bar]
+        Audio <-->|Resume point| Local[Local Storage]
     end
+
+    Audio -->|Progress| DB
+    Transcript --> User
+    TTS --> User
 ```
 
----
-
-## 🛠️ Tech Stack
-
-### Frontend Core
-| Technology | Role |
-|------------|------|
-| **React 19** | UI Library with modern hooks architecture |
-| **TypeScript** | Strict static typing for robustness |
-| **Vite** | Next-gen frontend tooling and bundling |
-
-### Visuals & Animation
-| Technology | Role |
-|------------|------|
-| **Framer Motion** | Physics-based UI animations |
-| **GSAP (GreenSock)** | Commercial-grade transitions for DotGrid |
-| **Custom Canvas** | GPU-accelerated DotGrid with spatial partitioning |
-| **Lucide React** | Consistent, lightweight iconography |
-
-### Backend & Data
-| Technology | Role |
-|------------|------|
-| **Supabase (PostgreSQL)** | Relational database with real-time subscriptions |
-| **Supabase Auth** | User management and secure session handling |
-| **Supabase Edge Functions** | Serverless content extraction |
-| **Row Level Security (RLS)** | Database-level access control policies |
-
-### AI Services
-| Technology | Role |
-|------------|------|
-| **Jina AI Reader** | URL to clean Markdown extraction |
-| **Google Gemini 2.0** | Content cleaning and formatting |
+The audio engine is the heart of it. Every utterance carries a token, so a
+cancelled sentence can never advance the queue behind your back. Playback truth
+lives in refs; React state is the mirror. Position, speed, and chunk index stay
+in lockstep whether you seek, skip, change speed, or close the tab.
 
 ---
 
-## 📸 Experience
+## Experience
 
 <p align="center">
-  <img src="docs/screenshots/home-page.png" alt="Smart Home Interface" width="280">
-  <img src="docs/screenshots/library-page.png" alt="Library & Sync" width="280">
-  <img src="docs/screenshots/settings-page.png" alt="Persistent Config" width="280">
+  <img src="docs/screenshots/home-page.png" alt="Home" width="280">
+  <img src="docs/screenshots/library-page.png" alt="Library" width="280">
+  <img src="docs/screenshots/settings-page.png" alt="Settings" width="280">
 </p>
 
 ---
 
-## <a name="quick-start"></a>⚡ Quick Start
+## <a name="quick-start"></a>Get started
 
-### Prerequisites
-- Node.js 18+
-- npm or yarn
+**Requirements** — Node.js 18 or later.
 
-### Installation
+```bash
+git clone https://github.com/nabrahma/AudiText.git
+cd AudiText
+cp .env.example .env
+npm install
+npm run dev
+```
 
-1.  **Clone the Repository**
-    ```bash
-    git clone https://github.com/nabrahma/AudiText.git
-    cd AudiText
-    ```
+Fill in `.env` with your Supabase project:
 
-2.  **Environment Setup**
-    Create a `.env` file in the root directory:
-    ```bash
-    cp .env.example .env
-    ```
-    Populate it with your credentials:
-    ```env
-    VITE_SUPABASE_URL=your_supabase_url
-    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-    ```
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-3.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
+The app fails fast and tells you if either is missing.
 
-4.  **Launch Development Server**
-    ```bash
-    npm run dev
-    ```
+### Edge Function secrets
+
+Set these on the Supabase side, not in the browser.
+
+| Variable | Service | Status | Purpose |
+|---|---|---|---|
+| `JINA_API_KEY` | Jina.ai | **Required** | Turns a URL into clean Markdown |
+| `GEMINI_API_KEY` | Google Gemini | Recommended | Sharpens extraction and cleanup |
+
+Without the Gemini key the app still works — extraction falls back to the regex
+cleaner, and the article still plays.
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
-We welcome contributions from the community! Whether it's enhancing the AI parsing logic or adding new visual effects.
+Fork it, branch it, and open a pull request.
 
-1.  Fork the repository.
-2.  Create a feature branch (`git checkout -b feature/EnhancedTTS`).
-3.  Commit your changes with clear messages (`git commit -m 'feat: Add voice selection'`).
-4.  Push to the branch (`git push origin feature/EnhancedTTS`).
-5.  Open a Pull Request.
+```bash
+git checkout -b feature/voice-selection
+git commit -m "feat: add voice selection"
+git push origin feature/voice-selection
+```
 
----
-
-### Edge Function Secrets (Optional / Advanced)
-The core AudiText experience (Content Extraction + Native Browser TTS) requires minimal setup. However, the backend infrastructure supports advanced capabilities if you wish to enable them.
-
-| Variable Name | Service | Status | Purpose |
-|---------------|---------|--------|---------|
-| `JINA_API_KEY` | **Jina.ai** | **Required** | Essential for converting raw URLs into clean Markdown. |
-| `GEMINI_API_KEY` | **Google Gemini** | *Recommended* | Greatly improves article cleaning and formatting. |
+Run `npm run lint` and `npm run build` before you push. Both should be silent.
 
 ---
 
-## 📄 License
+## License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT. See `LICENSE`.
 
 ---
 
 <p align="center">
-  <strong>Built with 🧠 + ❤️ by Nabaskar</strong>
+  <strong>Designed and built by Nabaskar.</strong>
 </p>
